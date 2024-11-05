@@ -23,12 +23,6 @@
     "default": "light",
     "isHidden": true
   },
-  "topbarLinks": [
-    {
-      "name": "Support",
-      "url": "mailto:rob@plato.so"
-    }
-  ],
   "topbarCtaButton": {
     "name": "Dashboard",
     "url": "https://plato.so"
