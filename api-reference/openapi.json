@@ -65,6 +65,8 @@
               }
             }
           },
+        },
+        "responses": {
           "200": {
             "description": "Browser session ended"
           }
