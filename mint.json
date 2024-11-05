@@ -46,7 +46,9 @@
       "group": "API Endpoints",
       "pages": [
         "api-reference/start-session",
-        "api-reference/end-session"
+        "api-reference/end-session",
+        "api-reference/run-action",
+        "api-reference/run-task"
       ]
     }
   ],
