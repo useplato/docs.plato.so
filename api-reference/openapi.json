@@ -19,69 +19,77 @@
     }
   ],
   "paths": {
-    "/api": {
-      "/start-session": {
-        "post": {
-          "description": "Creates and starts a new browser session",
-          "responses": {
-            "200": {
-              "description": "Browser session response",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "$ref": "#/components/schemas/NewBrowserSession"
-                  }
-                }
-              }
-            },
-            "400": {
-              "description": "Unexpected error",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Error"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "/end-session": {
-        "post": {
-          "description": "Ends a browser session",
-          "requestBody": {
-            "description": "The ID of the browser session to end",
+    "/api/start-session": {
+      "post": {
+        "description": "Creates and starts a new browser session",
+        "responses": {
+          "200": {
+            "description": "Browser session response",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {
-                    "session_id": {
-                      "description": "The ID of the browser session to end",
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/components/schemas/NewBrowserSession"
                 }
               }
             }
           },
-          "responses": {
-            "200": {
-              "description": "Browser session ended"
+          "400": {
+            "description": "Unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
-      },
-      "/run-action": {
-        "post": {
-          "description": "Runs an action in a browser session"
+      }
+    },
+    "/api/end-session": {
+      "post": {
+        "description": "Ends a browser session",
+        "requestBody": {
+          "description": "The ID of the browser session to end",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "session_id": {
+                    "description": "The ID of the browser session to end",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Browser session ended"
+          }
         }
-      },
-      "/run-task": {
-        "post": {
-          "description": "Runs a task in a browser session"
+      }
+    },
+    "/api/run-action": {
+      "post": {
+        "description": "Runs an action in a browser session",
+        "responses": {
+          "200": {
+            "description": "Action response"
+          }
+        }
+      }
+    },
+    "/api/run-task": {
+      "post": {
+        "description": "Runs a task in a browser session",
+        "responses": {
+          "200": {
+            "description": "Task response"
+          }
         }
       }
     }
