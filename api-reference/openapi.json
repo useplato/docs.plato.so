@@ -70,6 +70,16 @@
           }
         }
       }
+    },
+    "/api/run-action": {
+      "post": {
+        "description": "Runs an action in a browser session"
+      }
+    },
+    "/api/run-task": {
+      "post": {
+        "description": "Runs a task in a browser session"
+      }
     }
   },
   "components": {
