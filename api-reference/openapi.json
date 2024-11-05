@@ -96,6 +96,11 @@
                     "description": "The ID of the browser session to run the task in",
                     "type": "string"
                   },
+                  "start_url": {
+                    "description": "The URL to start the task at",
+                    "type": "string",
+                    "default": "https://google.com"
+                  },
                   "task": {
                     "description": "A description of the task to run",
                     "type": "string"
