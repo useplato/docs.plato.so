@@ -48,23 +48,6 @@
       ]
     },
     {
-      "group": "Essentials",
-      "pages": [
-        "essentials/markdown",
-        "essentials/code",
-        "essentials/images",
-        "essentials/settings",
-        "essentials/navigation",
-        "essentials/reusable-snippets"
-      ]
-    },
-    {
-      "group": "API Documentation",
-      "pages": [
-        "api-reference/introduction"
-      ]
-    },
-    {
       "group": "Endpoint Examples",
       "pages": [
         "api-reference/endpoint/get",
@@ -75,7 +58,7 @@
   ],
   "footerSocials": {
     "x": "https://x.com/RobFarlow",
-    "github": "https://github.com/shinpads",
+    "github": "https://github.com/useplato",
     "linkedin": "https://www.linkedin.com/in/robfarlow"
   }
 }
