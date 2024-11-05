@@ -15,9 +15,7 @@
       "to": "#0b62b9"
     }
   },
-  "theme": {
-    "type": "prism"
-  },
+  "theme": "prism",
   "topbarLinks": [
     {
       "name": "Support",
