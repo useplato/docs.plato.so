@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.1",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
+    "title": "Plato API",
+    "description": "Plato API",
     "license": {
       "name": "MIT"
     },
@@ -10,7 +10,7 @@
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
+      "url": "http://api.plato.so"
     }
   ],
   "security": [
@@ -43,6 +43,30 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/end-session": {
+      "post": {
+        "description": "Ends a browser session",
+        "requestBody": {
+          "description": "The ID of the browser session to end",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "session_id": {
+                    "description": "The ID of the browser session to end",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Browser session ended"
           }
         }
       }
