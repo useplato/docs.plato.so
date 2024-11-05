@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "shinpads.dev",
+  "name": "plato.so",
   "logo": {
     "dark": "/logo/dark.svg",
     "light": "/logo/light.svg"
@@ -18,12 +18,12 @@
   "topbarLinks": [
     {
       "name": "Support",
-      "url": "mailto:rob@shinpads.dev"
+      "url": "mailto:rob@plato.so"
     }
   ],
   "topbarCtaButton": {
     "name": "Dashboard",
-    "url": "https://shinpads.dev"
+    "url": "https://plato.so"
   },
   "tabs": [
     {
@@ -33,19 +33,9 @@
   ],
   "anchors": [
     {
-      "name": "Documentation",
-      "icon": "book-open-cover",
-      "url": "https://mintlify.com/docs"
-    },
-    {
       "name": "Community",
       "icon": "slack",
-      "url": "https://mintlify.com/community"
-    },
-    {
-      "name": "Blog",
-      "icon": "newspaper",
-      "url": "https://mintlify.com/blog"
+      "url": "https://discord.gg/vR4PPTG6"
     }
   ],
   "navigation": [
