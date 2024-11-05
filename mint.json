@@ -15,11 +15,14 @@
       "to": "#0b62b9"
     },
     "background": {
-      "dark": "#333333",
       "light": "#fafafa"
     }
   },
   "theme": "quill",
+  "modeToggle": {
+    "default": "light",
+    "isHidden": true
+  },
   "topbarLinks": [
     {
       "name": "Support",
