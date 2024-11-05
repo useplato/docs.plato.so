@@ -94,6 +94,10 @@
           "session_id": {
             "description": "The ID of the browser session",
             "type": "string"
+          },
+          "debug_url": {
+            "description": "The debug URL of the browser session",
+            "type": "string"
           }
         }
       },
