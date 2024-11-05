@@ -45,7 +45,8 @@
     {
       "group": "API Endpoints",
       "pages": [
-        "api-reference/create-session"
+        "api-reference/start-session",
+        "api-reference/end-session"
       ]
     }
   ],
