@@ -43,7 +43,7 @@
       ]
     },
     {
-      "group": "Endpoint Examples",
+      "group": "API Endpoints",
       "pages": [
         "api-reference/endpoint/get",
         "api-reference/endpoint/create",
