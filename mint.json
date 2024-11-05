@@ -13,9 +13,13 @@
     "anchors": {
       "from": "#0b62b9",
       "to": "#0b62b9"
+    },
+    "background": {
+      "dark": "#333333",
+      "light": "#fafafa"
     }
   },
-  "theme": "prism",
+  "theme": "quill",
   "topbarLinks": [
     {
       "name": "Support",
