@@ -15,6 +15,9 @@
       "to": "#0b62b9"
     }
   },
+  "theme": {
+    "type": "prism"
+  },
   "topbarLinks": [
     {
       "name": "Support",
@@ -28,7 +31,7 @@
   "anchors": [
     {
       "name": "Community",
-      "icon": "slack",
+      "icon": "discord",
       "url": "https://discord.gg/vR4PPTG6"
     }
   ],
