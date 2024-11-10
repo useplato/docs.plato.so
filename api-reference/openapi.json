@@ -175,7 +175,7 @@
         }
       }
     },
-    "/run-task": {
+    "/task": {
       "post": {
         "description": "Runs a task in a browser session",
         "requestBody": {
