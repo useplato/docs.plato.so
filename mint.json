@@ -47,10 +47,19 @@
       "pages": [
         "api-reference/start-session",
         "api-reference/end-session",
-        "api-reference/run-action",
         "api-reference/run-task"
       ]
+    },
+    {
+      "group": "API Primitive Endpoints",
+      "pages": [
+        "api-reference/navigate",
+        "api-reference/extract",
+        "api-reference/click",
+        "api-reference/type"
+      ]
     }
+
   ],
   "footerSocials": {
     "x": "https://x.com/RobFarlow",

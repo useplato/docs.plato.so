@@ -19,7 +19,7 @@
     }
   ],
   "paths": {
-    "/api/start-session": {
+    "/start-session": {
       "post": {
         "description": "Creates and starts a new browser session",
         "responses": {
@@ -47,7 +47,7 @@
         }
       }
     },
-    "/api/end-session": {
+    "/end-session": {
       "post": {
         "description": "Ends a browser session",
         "requestBody": {
@@ -73,17 +73,109 @@
         }
       }
     },
-    "/api/run-action": {
+    "/click": {
       "post": {
-        "description": "Runs an action in a browser session",
+        "description": "Clicks an element with a given description",
         "responses": {
           "200": {
-            "description": "Action response"
+            "description": "Success"
           }
         }
       }
     },
-    "/api/run-task": {
+    "/type": {
+      "post": {
+        "description": "Type text on the page",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/navigate": {
+      "post": {
+        "description": "Navigate to a URL",
+        "requestBody": {
+          "description": "The URL to navigate to",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/extract": {
+      "post": {
+        "description": "Extract data from the page in the provided structure",
+        "requestBody": {
+          "description": "The structure of the data to extract",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "$ref": "#/components/schemas/ExtractSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/run-task": {
       "post": {
         "description": "Runs a task in a browser session",
         "requestBody": {
@@ -168,6 +260,47 @@
             "type": "string"
           }
         }
+      },
+      "ExtractSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the parameter"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the parameter"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the parameter",
+            "default": ""
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the parameter"
+          },
+          "isArray": {
+            "type": "boolean",
+            "description": "Whether the parameter is an array",
+            "default": false
+          },
+          "elementHint": {
+            "type": "object",
+            "description": "Additional hints about array elements",
+            "nullable": true
+          },
+          "subParameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExtractSchema"
+            },
+            "description": "Nested parameters",
+            "nullable": true
+          }
+        },
+        "required": ["name", "type"]
       }
     },
     "securitySchemes": {
