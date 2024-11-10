@@ -43,7 +43,7 @@
       ]
     },
     {
-      "group": "API Endpoints",
+      "group": "Endpoints",
       "pages": [
         "api-reference/start-session",
         "api-reference/end-session",
@@ -51,7 +51,7 @@
       ]
     },
     {
-      "group": "API Primitive Endpoints",
+      "group": "Primitive Endpoints",
       "pages": [
         "api-reference/navigate",
         "api-reference/extract",
