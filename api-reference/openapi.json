@@ -22,6 +22,21 @@
     "/start-session": {
       "post": {
         "description": "Creates and starts a new browser session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cookies": {
+                    "type": "object",
+                    "description": "Cookies to set in the browser session"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Browser session response",
@@ -189,7 +204,7 @@
                     "type": "string"
                   },
                   "start_url": {
-                    "description": "The URL to start the task at",
+                    "description": "The URL to start the task at (optional)",
                     "type": "string",
                     "default": "https://google.com"
                   },
