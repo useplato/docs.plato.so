@@ -166,7 +166,11 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "$ref": "#/components/schemas/ExtractSchema"
+                "properties": {
+                  "response_format": {
+                    "type": "object"
+                  }
+                }
               }
             }
           }
@@ -211,6 +215,9 @@
                   "task": {
                     "description": "A description of the task to run",
                     "type": "string"
+                  },
+                  "response_format": {
+                    "type": "object"
                   }
                 }
               }
@@ -275,47 +282,6 @@
             "type": "string"
           }
         }
-      },
-      "ExtractSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique identifier for the parameter"
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the parameter"
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of the parameter",
-            "default": ""
-          },
-          "type": {
-            "type": "string",
-            "description": "Type of the parameter"
-          },
-          "isArray": {
-            "type": "boolean",
-            "description": "Whether the parameter is an array",
-            "default": false
-          },
-          "elementHint": {
-            "type": "object",
-            "description": "Additional hints about array elements",
-            "nullable": true
-          },
-          "subParameters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ExtractSchema"
-            },
-            "description": "Nested parameters",
-            "nullable": true
-          }
-        },
-        "required": ["name", "type"]
       }
     },
     "securitySchemes": {
