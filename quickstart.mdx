@@ -3,40 +3,78 @@ title: 'Quickstart'
 description: 'Get started with the Plato API'
 ---
 
-## Generate an API key
-- Head to the `Settings` tab on the [Plato dashboard](https://plato.so)
-- Copy the API key
 
-## Create a browser session
+<Steps>
+  <Step title="Generate an API key">
+    Head to the `Settings` tab on the [Plato dashboard](https://plato.so) and copy the API key
+  </Step>
 
-<CodeGroup>
+  <Step title="Install plato-cli library">
+    Install the Plato CLI using npm or pip
+    <CodeGroup>
+      ```bash Node
+        npm install plato-cli
+      ```
 
-```bash cURL
-curl --request POST \
-  --url http://api.plato.so/api/start-session \
-  --header 'Authorization: Bearer <token>'
-```
+      ```bash Python
+        pip install plato-cli
+      ```
+    </CodeGroup>
+  </Step>
 
-```javascript Node
-const options = {method: 'POST', headers: {Authorization: 'Bearer <token>'}};
+  <Step title="Make a simple request">
+    Make your first API call to create a browser session
 
-fetch('http://api.plato.so/api/start-session', options)
-  .then(response => response.json())
-  .then(response => console.log(response))
-  .catch(err => console.error(err));
-```
+    <CodeGroup>
+      ```javascript Node
+      import Plato from 'plato-cli';
+      import { z } from 'zod';
 
-```python Python
-import requests
+      const plato = new Plato({ apiKey: 'YOUR_PLATO_API_KEY' });
 
-url = "http://api.plato.so/api/start-session"
+      const session = await plato.startSession();
 
-headers = {"Authorization": "Bearer <token>"}
+      const ResponseFormat = z.object({
+        companies: z.array(z.object({
+          name: z.string(),
+          description: z.string(),
+          imgUrl: z.string(),
+          tags: z.array(z.string())
+        }))
+      });
 
-response = requests.request("POST", url, headers=headers)
+      await session.navigate('https://ycombinator.com/companies');
+      const response = await session.extract('all of the companies on the page', { responseFormat: ResponseFormat });
 
-print(response.text)
-```
+      response.companies.forEach((company) => {
+        console.log(company.name, company.description, company.imgUrl, company.tags);
+      })
+      ```
 
-</CodeGroup>
+      ```python Python
+      from plato import Plato
+      from pydantic import BaseModel
 
+      class Company(BaseModel):
+          name: str
+          description: str
+          img_url: str
+          tags: list[str]
+
+      class Companies(BaseModel):
+          companies: list[Company]
+
+      plato = Plato(api_key="YOUR_PLATO_API_KEY")
+
+      with plato.start_session() as session:
+        session.navigate("https://ycombinator.com/companies")
+        response = session.extract(description="all of the companies on the page", response_format=Companies)
+        for company in response.companies:
+          print(company.name, company.description, company.img_url, company.tags)
+      ```
+
+    </CodeGroup>
+  </Step>
+
+
+</Steps>

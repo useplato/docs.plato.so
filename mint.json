@@ -18,7 +18,10 @@
       "light": "#fafafa"
     }
   },
-  "theme": "venus",
+  "theme": "prism",
+  "background": {
+    "style": "grid"
+  },
   "modeToggle": {
     "default": "light",
     "isHidden": true
