@@ -28,9 +28,29 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "cookies": {
+                  "url": {
+                    "type": "string",
+                    "description": "The start URL for the browser session"
+                  },
+                  "browserSettings": {
                     "type": "object",
-                    "description": "Cookies to set in the browser session"
+                    "description": "Settings for the browser session",
+                    "properties": {
+                      "viewport": {
+                        "type": "object",
+                        "description": "The viewport to use for the browser session",
+                        "properties": {
+                          "width": {
+                            "type": "integer",
+                            "description": "The width of the viewport"
+                          },
+                          "height": {
+                            "type": "integer",
+                            "description": "The height of the viewport"
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -237,12 +257,8 @@
       "NewBrowserSession": {
         "type": "object",
         "properties": {
-          "session_id": {
-            "description": "The ID of the browser session",
-            "type": "string"
-          },
-          "debug_url": {
-            "description": "The debug URL of the browser session",
+          "connectUrl": {
+            "description": "The URL to connect to the browser session",
             "type": "string"
           }
         }

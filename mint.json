@@ -49,6 +49,12 @@
       "pages": [
         "examples"
       ]
+    },
+    {
+      "group": "Endpoints",
+      "pages": [
+        "api-reference/start-session"
+      ]
     }
   ],
   "footerSocials": {
