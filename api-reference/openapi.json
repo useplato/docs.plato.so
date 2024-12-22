@@ -19,19 +19,15 @@
     }
   ],
   "paths": {
-    "/start-session": {
+    "/eval": {
       "post": {
-        "description": "Creates and starts a new browser session",
+        "description": "Start an evaluation run",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "url": {
-                    "type": "string",
-                    "description": "The start URL for the browser session"
-                  },
                   "browserSettings": {
                     "type": "object",
                     "description": "Settings for the browser session",
