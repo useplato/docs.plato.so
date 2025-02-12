@@ -45,6 +45,12 @@
       ]
     },
     {
+      "group": "SDKs",
+      "pages": [
+        "python-sdk"
+      ]
+    },
+    {
       "group": "Examples",
       "pages": [
         "examples"

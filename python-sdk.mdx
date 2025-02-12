@@ -1,0 +1,236 @@
+---
+title: 'Python SDK'
+description: 'The Plato Python SDK provides an API for running evaluations on the Plato platform'
+---
+
+# Plato Python SDK
+
+The Plato Python SDK provides an API for running evaluations on the Plato platform. It allows you to configure tasks, manage browser sessions, and compute custom scores with ease.
+
+## Overview
+
+<CardGroup>
+  <Card title="Task" icon="rectangle-terminal" href="#task-definition">
+    Define what needs to be evaluated and how
+  </Card>
+
+  <Card title="Configure Run" icon="gear" href="#platorunnerconfig">
+    Configure task execution and browser management settings
+  </Card>
+
+  <Card title="Scores" icon="chart-line" href="#custom-scores">
+    Compute and track evaluation metrics
+  </Card>
+
+  <Card title="Eval Results" icon="chart-bar" href="#eval-results">
+    Access detailed evaluation results and summaries
+  </Card>
+</CardGroup>
+
+## Installation
+
+```bash
+pip install plato-cli
+# or with uv
+uv add plato-cli
+```
+
+## Task Definition
+
+The `Task` class is the fundamental building block for defining what needs to be evaluated. Here's the structure:
+
+```python
+from typing import Any, Optional
+from pydantic import BaseModel
+
+class Task(BaseModel):
+    name: str
+    prompt: str
+    start_url: Optional[str] = None
+    output_schema: Optional[Any] = None
+    extra: dict = {}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `str` | Unique identifier for the task |
+| `prompt` | `str` | The main instruction or content to be evaluated |
+| `start_url` | `Optional[str]` | Initial URL to navigate to when starting the task |
+| `output_schema` | `Optional[Any]` | Schema definition for expected task output |
+| `extra` | `dict` | Additional task-specific configuration options |
+
+## Getting Started
+
+### 1. Basic Runner Configuration
+
+Here's a simple example to get started:
+
+```python
+from plato_sdk import PlatoRunnerConfig
+
+async def agent_task(task: Task, session) -> dict:
+    # Example of an agent performing steps in a browser
+    steps = [
+        {"action": "navigate", "url": "https://example.com"},
+        {"action": "click", "selector": "#search-button"},
+        {"action": "type", "selector": "#search-input", "text": task.prompt},
+        {"action": "wait", "selector": ".results"}
+    ]
+    
+    results = []
+    for step in steps:
+        await session.log(f"Executing step: {step['action']}")
+        
+        if step['action'] == 'navigate':
+            await session.page.goto(step['url'])
+        elif step['action'] == 'click':
+            await session.page.click(step['selector'])
+        elif step['action'] == 'type':
+            await session.page.fill(step['selector'], step['text'])
+        elif step['action'] == 'wait':
+            await session.page.wait_for_selector(step['selector'])
+        
+        results.append({
+            "step": step['action'],
+            "success": True
+        })
+    
+    return {"steps": results}
+
+# Basic configuration without custom browser management
+config = PlatoRunnerConfig(
+    name="AgentEvaluation",
+    data=[Task(name="SearchTask", prompt="quantum computing")],
+    task=agent_task,
+    trial_count=1,
+    timeout=1800000,  # 30 minutes
+    max_concurrency=15
+)
+```
+
+### 2. Advanced Configuration with Custom Browser
+
+If you need more control over browser management, you can provide a `custom_browser` function. This is optional but useful when you want to use your own browser automation setup:
+
+```python
+from playwright.async_api import async_playwright
+import asyncio
+
+async def custom_browser(task: Task) -> str:
+    playwright = await async_playwright().start()
+    browser = await playwright.chromium.launch(headless=True)
+    context = await browser.new_context()
+    page = await context.new_page()
+    return browser.wsEndpoint
+
+# Advanced configuration with custom browser management
+config_with_browser = PlatoRunnerConfig(
+    name="AgentEvaluation",
+    data=[Task(name="SearchTask", prompt="quantum computing")],
+    task=agent_task,
+    trial_count=1,
+    timeout=1800000,  # 30 minutes
+    max_concurrency=15,
+    custom_browser=custom_browser  # Optional: Add your own browser management
+)
+```
+
+### 3. Running the Evaluation
+
+```python
+import asyncio
+from plato_sdk import Plato
+
+async def main():
+    result = await Plato.start(
+        name="v1.0",
+        config=config_with_browser,
+        api_key="YOUR_PLATO_API_KEY",  # Or set PLATO_API_KEY environment variable
+        base_url="https://plato.so"
+    )
+    print(result.to_dict())
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## API Reference
+
+### PlatoRunnerConfig
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `str` | Name of the evaluation run |
+| `data` | `List[Task]` | List of tasks to be evaluated |
+| `task` | `Callable[[Task, PlatoSession], Awaitable[Any]]` | Async function that processes a task |
+| `trial_count` | `int` | Number of trials per task |
+| `timeout` | `int` | Overall timeout in milliseconds |
+| `max_concurrency` | `int` | Maximum concurrent task executions |
+| `custom_browser` | `Optional[Callable[[Task], Awaitable[str]]]` | Function returning a CDP URL |
+| `custom_scores` | `List[Callable[[Dict[str, Any]], Awaitable[float]]]` | Custom scoring functions |
+
+### PlatoSession
+
+| Method | Description |
+|--------|-------------|
+| `start(plato: Plato, task: Task)` | Starts a new browser session |
+| `terminate(plato: Plato, session_id: str)` | Terminates an API-created session |
+| `log(message: str)` | Sends a log message |
+| `score()` | Sends computed score |
+| `close()` | Closes the browser session |
+
+## Custom Browser Integration
+
+When using your own browser management (e.g., Playwright), provide a `custom_browser` function in your configuration. This function should:
+
+1. Accept a `Task` parameter
+2. Return a CDP URL (Chrome DevTools Protocol WebSocket URL)
+3. Handle browser lifecycle management
+
+The SDK will automatically use this function during session initialization.
+
+## Custom Scores
+
+Custom scoring functions allow you to define metrics for evaluating task performance. Each function receives the task output and returns a score between 0 and 1.
+
+```python
+async def accuracy_score(output: Dict[str, Any]) -> float:
+    # Example scoring function
+    steps = output.get("steps", [])
+    successful_steps = sum(1 for step in steps if step["success"])
+    return successful_steps / len(steps) if steps else 0.0
+
+config = PlatoRunnerConfig(
+    # ... other config options ...
+    custom_scores=[accuracy_score]
+)
+```
+
+## Eval Results
+
+The evaluation results contain detailed information about task execution and scoring:
+
+```python
+class EvalResult(BaseModel):
+    task_id: str
+    run_id: str
+    scores: Dict[str, float]  # Score name -> value
+    metadata: Dict[str, Any]  # Additional task-specific data
+    duration_ms: int
+    error: Optional[str]
+
+class EvalSummary(BaseModel):
+    run_id: str
+    task_results: List[EvalResult]
+    aggregate_scores: Dict[str, float]  # Average scores across all tasks
+    start_time: datetime
+    end_time: datetime
+```
+
+## Contributing
+
+We welcome contributions and feedback! Feel free to open issues or submit pull requests on our GitHub repository.
+
+## License
+
+This SDK is available under the MIT License. 
