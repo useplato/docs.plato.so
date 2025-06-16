@@ -1,6 +1,6 @@
 ---
-title: Examples
-description: 'Plato Examples'
+title: 'Custom Browser Examples'
+description: 'Learn how to use custom browsers with Plato SDK'
 ---
 
 <img
@@ -14,58 +14,74 @@ description: 'Plato Examples'
   alt="Hero Dark"
 />
 
-## Setting up
+## Custom Browser Setup
 
-The first step to world-class documentation is setting up your editing environments.
+### Environment Setup
+
+```python
+# Initialize client and create environment
+client = SyncPlato()
+env = client.make_environment(
+    env_id="doordash",
+    interface_type=None,  # Required for custom browser
+)
+
+# Initialize environment
+env.wait_for_ready()
+env.reset()
+
+# Get proxy configuration for browser
+proxy_config = env.get_proxy_config()
+```
+
+### Browser Launch
+
+```python
+with sync_playwright() as p:
+    browser = p.chromium.launch(
+        headless=False,  # Set to True for headless mode
+        proxy=proxy_config,
+        args=[
+            "--ignore-certificate-errors",
+            "--ignore-ssl-errors",
+            "--disable-http2",
+        ],
+    )
+
+    page = browser.new_page()
+    # Your automation code here
+    browser.close()
+```
+
+## Required Setup
+
+### Environment Variables
+```bash
+PLATO_API_KEY=your_plato_api_key
+```
+
+### Dependencies
+```bash
+pip install plato-sdk playwright python-dotenv
+```
+
+<Note>
+  Set `interface_type=None` to use your own browser instance instead of Plato's managed browser.
+</Note>
+
+## Key Features
 
 <CardGroup cols={2}>
   <Card
-    title="Edit Your Docs"
-    icon="pen-to-square"
-    href="https://mintlify.com/docs/quickstart"
+    title="Sync SDK"
+    icon="browser"
   >
-    Get your docs set up locally for easy development
+    Uses SyncPlato for easier synchronous operations
   </Card>
   <Card
-    title="Preview Changes"
-    icon="image"
-    href="https://mintlify.com/docs/development"
+    title="Custom Browser"
+    icon="gears"
   >
-    Preview your changes before you push to make sure they're perfect
-  </Card>
-</CardGroup>
-
-## Make it yours
-
-Update your docs to your brand and add valuable content for the best user conversion.
-
-<CardGroup cols={2}>
-  <Card
-    title="Customize Style"
-    icon="palette"
-    href="https://mintlify.com/docs/settings/global"
-  >
-    Customize your docs to your company's colors and brands
-  </Card>
-  <Card
-    title="Reference APIs"
-    icon="code"
-    href="https://mintlify.com/docs/api-playground/openapi"
-  >
-    Automatically generate endpoints from an OpenAPI spec
-  </Card>
-  <Card
-    title="Add Components"
-    icon="screwdriver-wrench"
-    href="https://mintlify.com/docs/components/accordion"
-  >
-    Build interactive features and designs to guide your users
-  </Card>
-  <Card
-    title="Get Inspiration"
-    icon="stars"
-    href="https://mintlify.com/customers"
-  >
-    Check out our showcase of our favorite documentation
+    Full control over browser configuration and automation
   </Card>
 </CardGroup>

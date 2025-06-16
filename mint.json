@@ -45,21 +45,17 @@
       ]
     },
     {
-      "group": "SDKs",
+      "group": "SDK Reference",
       "pages": [
-        "python-sdk"
+        "sdk/plato-client",
+        "sdk/plato-environment",
+        "sdk/plato-task"
       ]
     },
     {
       "group": "Examples",
       "pages": [
         "examples"
-      ]
-    },
-    {
-      "group": "Endpoints",
-      "pages": [
-        "api-reference/start-session"
       ]
     }
   ],

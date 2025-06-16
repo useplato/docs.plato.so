@@ -1,0 +1,94 @@
+---
+title: 'Plato Client'
+description: 'Main client for interacting with the Plato platform'
+---
+
+# PlatoClient
+
+The `PlatoClient` is your main entry point for interacting with the Plato platform. It handles authentication, environment creation, and task management.
+
+## Initialization
+
+```python
+from plato import Plato
+
+# Initialize with environment variables
+client = Plato()
+
+# Or specify API key directly
+client = Plato(api_key="your_api_key")
+
+# Custom configuration
+client = Plato(
+    api_key="your_api_key",
+    base_url="https://api.plato.so",  # Optional: API endpoint
+)
+```
+
+## Environment Management
+
+<CardGroup cols={2}>
+  <Card
+    title="Create Environment"
+    icon="plus"
+  >
+    ```python
+    env = client.make_environment(
+        env_id="doordash"
+    )
+    ```
+  </Card>
+  <Card
+    title="Load Tasks"
+    icon="list-check"
+  >
+    ```python
+    tasks = client.load_tasks(
+        "doordash"
+    )
+    ```
+  </Card>
+</CardGroup>
+
+## Available Methods
+
+### Environment Creation
+
+```python
+# Create a new environment
+env = client.make_environment(
+    env_id: str,           # Environment identifier
+    interface_type: str   # Interface type
+)
+
+# Create with context manager
+async with client.make_environment("doordash") as env:
+    # Environment usage
+    pass
+```
+
+### Task Management
+
+```python
+# Load predefined tasks
+tasks = await client.load_tasks("doordash")
+
+# Get task by ID
+task = await client.get_task("task_id")
+```
+
+## Environment Variables
+
+The client looks for these environment variables:
+
+```bash
+# Required
+PLATO_API_KEY=your_api_key
+
+# Optional
+PLATO_BASE_URL=your_api_endpoint  # Defaults to https://api.plato.so
+```
+
+<Note>
+Always properly close the client and its environments when done to free up resources.
+</Note> 

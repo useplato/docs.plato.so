@@ -1,0 +1,138 @@
+---
+title: 'Plato Task'
+description: 'Task configuration and evaluation for Plato environments'
+---
+
+# PlatoTask
+
+The `PlatoTask` class defines the structure and evaluation criteria for tasks in Plato environments.
+
+## Task Structure
+
+```python
+from plato.models import PlatoTask
+
+task = PlatoTask(
+    name: str,                # Task identifier
+    prompt: str,              # Task instructions
+    start_url: str,           # Initial URL
+    eval_config: EvalConfig,  # Evaluation configuration
+    extra: dict = {}          # Additional task-specific data
+)
+```
+
+## Creating Tasks
+
+### Basic Task
+
+```python
+task = PlatoTask(
+    name="order_pizza",
+    prompt="Order a large pepperoni pizza from DoorDash",
+    start_url="https://doordash.com",
+    eval_config=CustomEvalConfig(
+        score_fn=your_eval_function
+    )
+)
+```
+
+### Custom Evaluation
+
+```python
+async def evaluate_order(state: dict) -> tuple[bool, str]:
+    """Custom evaluation function for DoorDash order."""
+    try:
+        # Check order status
+        order_complete = state.get("order_status") == "complete"
+        cart_items = state.get("cart", [])
+        
+        # Verify order contents
+        has_pizza = any(
+            item.get("name", "").lower().contains("pepperoni")
+            for item in cart_items
+        )
+        
+        if order_complete and has_pizza:
+            return True, "Order completed successfully"
+        return False, "Order incomplete or missing items"
+    except Exception as e:
+        return False, f"Evaluation error: {str(e)}"
+
+# Create task with custom evaluation
+task = PlatoTask(
+    name="order_pizza",
+    prompt="Order a large pepperoni pizza",
+    start_url="https://doordash.com",
+    eval_config=CustomEvalConfig(
+        score_fn=evaluate_order
+    )
+)
+```
+
+## Evaluation Configuration
+
+<CardGroup cols={2}>
+  <Card
+    title="Custom Evaluation"
+    icon="code"
+  >
+    ```python
+    CustomEvalConfig(
+        score_fn=callable
+    )
+    ```
+    Define custom evaluation logic
+  </Card>
+  <Card
+    title="State Access"
+    icon="database"
+  >
+    Evaluation functions receive current environment state for verification
+  </Card>
+</CardGroup>
+
+### State Structure
+
+The state object passed to evaluation functions contains:
+
+```python
+{
+    "url": str,              # Current page URL
+    "title": str,            # Page title
+    "content": str,          # Page content
+    "elements": List[dict],  # Interactive elements
+    "mutations": List[dict], # State changes
+    "custom": dict,          # Task-specific data
+}
+```
+
+## Using Tasks
+
+### With Environment
+
+```python
+# Create environment with task
+env = client.make_environment("doordash")
+await env.reset(task=task)
+
+# Run task and evaluate
+result = await env.evaluate()
+print(f"Task succeeded: {result.success}")
+if not result.success:
+    print(f"Reason: {result.reason}")
+```
+
+### Loading Predefined Tasks
+
+```python
+# Load tasks for specific environment
+tasks = await client.load_tasks("doordash")
+
+# Use first available task
+task = tasks[0]
+await env.reset(task=task)
+```
+
+<Note>
+Evaluation functions should be deterministic and handle all possible state scenarios to ensure reliable task verification.
+</Note> 

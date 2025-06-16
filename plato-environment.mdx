@@ -1,0 +1,193 @@
+---
+title: 'PlatoEnvironment'
+description: 'Core environment class for managing Plato tasks and browser sessions'
+---
+
+# PlatoEnvironment
+
+The `PlatoEnvironment` class is the core interface for creating, managing, and interacting with task environments in Plato.
+
+## Environment Creation
+
+### make_environment Arguments
+
+```python
+env = client.make_environment(
+    env_id: str,           # Required: Environment identifier (e.g., "doordash")
+    interface_type: str,   # Optional: Interface type, set to None for custom browser
+    alias: str = None,     # Optional: Custom alias for the environment
+    sim_job_id: str = None # Optional: Simulation job identifier
+)
+```
+
+### Environment Reset Options
+
+```python
+await env.reset(
+    task: Optional[PlatoTask] = None,     # Task configuration
+    agent_version: Optional[str] = None,   # Version identifier for the agent
+    load_authenticated: bool = False       # Whether to load authenticated state
+)
+```
+
+<CardGroup cols={2}>
+  <Card
+    title="Environment Types"
+    icon="browser"
+  >
+    Set `interface_type=None` for custom browser control, or use predefined types for managed environments
+  </Card>
+  <Card
+    title="Authentication"
+    icon="lock"
+  >
+    Use `load_authenticated=True` to maintain session state across resets
+  </Card>
+</CardGroup>
+
+## Browser Integration
+
+### CDP Connection
+
+```python
+# Get Chrome DevTools Protocol URL
+cdp_url = await env.get_cdp_url()
+
+# Connect using CDP in your automation code
+from playwright.async_api import async_playwright
+
+async with async_playwright() as p:
+    browser = await p.chromium.connect_over_cdp(cdp_url)
+    page = await browser.new_page()
+    # Your automation code here
+```
+
+### Custom Browser Setup
+
+```python
+# Get proxy configuration for custom browser
+proxy_config = await env.get_proxy_config()
+# Returns:
+# {
+#     "server": "https://proxy.plato.so",
+#     "username": "<env_id>",
+#     "password": "<session_id>"
+# }
+
+# Launch custom browser with proxy
+with sync_playwright() as p:
+    browser = p.chromium.launch(
+        headless=False,
+        proxy=proxy_config,
+        args=[
+            "--ignore-certificate-errors",
+            "--ignore-ssl-errors",
+            "--disable-http2",
+        ],
+    )
+    page = browser.new_page()
+    # Your automation code here
+```
+
+## Monitoring & URLs
+
+<CardGroup cols={3}>
+  <Card
+    title="Live View"
+    icon="display"
+  >
+    ```python
+    url = await env.get_live_view_url()
+    ```
+    Real-time browser view through noVNC
+  </Card>
+  <Card
+    title="Public URL"
+    icon="globe"
+  >
+    ```python
+    url = await env.get_public_url()
+    ```
+    Public access to environment
+  </Card>
+  <Card
+    title="Session URL"
+    icon="link"
+  >
+    ```python
+    url = await env.get_session_url()
+    ```
+    Direct session access
+  </Card>
+</CardGroup>
+
+### URL Patterns
+
+The environment provides different URLs based on your deployment:
+
+```python
+# Production
+https://{alias|env.id}.sims.plato.so
+
+# Staging
+https://{alias|env.id}.staging.sims.plato.so
+
+# Local Development
+http://localhost:8081/{alias|env.id}
+```
+
+## State Management
+
+### Getting State
+
+```python
+# Get current state
+state = await env.get_state()
+
+# Get state mutations
+mutations = await env.get_state_mutations()
+```
+
+### Task Evaluation
+
+```python
+# Evaluate task completion
+result = await env.evaluate(
+    agent_version: Optional[str] = None  # Version identifier for evaluation
+)
+
+# Returns EvaluationResult with:
+# - success: bool
+# - reason: Optional[str]
+# - diffs: Optional[List]
+# - expected_mutations: Optional[List]
+# - actual_mutations: Optional[List]
+```
+
+## Resource Management
+
+### Using Context Manager
+
+```python
+async with client.make_environment("doordash") as env:
+    await env.reset()
+    # Your code here
+    # Environment automatically closed
+```
+
+### Manual Cleanup
+
+```python
+try:
+    env = client.make_environment("doordash")
+    await env.wait_for_ready()
+    # Your code here
+except PlatoClientError as e:
+    print(f"Error: {e}")
+finally:
+    await env.close()
+```
+
+<Note>
+The environment maintains an automatic heartbeat connection to keep the session alive. Always use proper cleanup through `close()` or the context manager.
+</Note> 
