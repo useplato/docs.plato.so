@@ -5,7 +5,7 @@ description: 'Main client for interacting with the Plato platform'
 
 # PlatoClient
 
-The `PlatoClient` is your main entry point for interacting with the Plato platform. It handles authentication, environment creation, and task management.
+The `PlatoClient` is your main entry point for interacting with the Plato platform. It handles authentication, environment creation, task management, and simulator operations.
 
 ## Initialization
 
@@ -27,54 +27,142 @@ client = Plato(
 
 ## Environment Management
 
-<CardGroup cols={2}>
-  <Card
-    title="Create Environment"
-    icon="plus"
-  >
-    ```python
-    env = client.make_environment(
-        env_id="doordash"
-    )
-    ```
-  </Card>
-  <Card
-    title="Load Tasks"
-    icon="list-check"
-  >
-    ```python
-    tasks = client.load_tasks(
-        "doordash"
-    )
-    ```
-  </Card>
-</CardGroup>
+### Create Environment
 
-## Available Methods
-
-### Environment Creation
+Create a new Plato environment for testing and automation:
 
 ```python
-# Create a new environment
-env = client.make_environment(
-    env_id: str,           # Environment identifier
-    interface_type: str   # Interface type
+# Basic environment creation
+env = await client.make_environment(env_id="doordash")
+
+# Advanced environment creation with custom settings
+env = await client.make_environment(
+    env_id="doordash",
+    open_page_on_start=True,
+    viewport_width=1920,
+    viewport_height=1080,
+    interface_type="browser",
+    record_network_requests=True,
+    record_actions=True,
+    env_config={"custom_setting": "value"},
+    keepalive=True,
+    alias="my-test-environment"
 )
 
-# Create with context manager
+# Use as context manager for automatic cleanup
 async with client.make_environment("doordash") as env:
-    # Environment usage
+    # Your automation code here
     pass
 ```
 
-### Task Management
+**Parameters:**
+- `env_id` (str): Environment identifier (e.g., "doordash", "espocrm")
+- `open_page_on_start` (bool): Whether to open the page immediately
+- `viewport_width/height` (int): Browser viewport dimensions
+- `interface_type` (str): Interface type ("browser" or "noop")
+- `record_network_requests` (bool): Enable network request recording
+- `record_actions` (bool): Enable action recording
+- `env_config` (dict): Custom environment configuration
+- `keepalive` (bool): Prevent job termination due to heartbeat failures
+- `alias` (str): Optional alias for the job group
+
+### Close Client
+
+Properly close the client and clean up resources:
 
 ```python
-# Load predefined tasks
+# Close the client session
+await client.close()
+```
+
+## Simulator Management
+
+### List Simulators
+
+Get all available simulators:
+
+```python
+simulators = await client.list_simulators()
+
+for simulator in simulators:
+    print(f"Name: {simulator['name']}")
+    print(f"Description: {simulator['description']}")
+    print(f"Enabled: {simulator['enabled']}")
+```
+
+Returns a list of enabled simulators with their metadata.
+
+## Task Management
+
+### Load Tasks by Simulator Name
+
+Load all tasks from a specific simulator:
+
+```python
+# Load tasks from a simulator
 tasks = await client.load_tasks("doordash")
 
-# Get task by ID
-task = await client.get_task("task_id")
+for task in tasks:
+    print(f"Task: {task.name}")
+    print(f"ID: {task.public_id}")
+    print(f"Prompt: {task.prompt}")
+    print(f"Start URL: {task.start_url}")
+    print(f"Average Time: {task.average_time}s")
+    print(f"Average Steps: {task.average_steps}")
+```
+
+### List Tasks by Simulator ID
+
+Get tasks using the simulator's internal ID:
+
+```python
+# Get tasks by simulator ID
+tasks = await client.list_simulator_tasks_by_id("simulator_id_123")
+
+for task in tasks:
+    print(f"Name: {task['name']}")
+    print(f"Public ID: {task['publicId']}")
+    print(f"Prompt: {task['prompt']}")
+```
+
+## Complete Example
+
+Here's a complete example showing typical usage:
+
+```python
+import asyncio
+from plato import Plato
+
+async def main():
+    # Initialize client
+    client = Plato(api_key="your-api-key")
+    
+    # List available simulators
+    simulators = await client.list_simulators()
+    print(f"Available simulators: {[s['name'] for s in simulators]}")
+    
+    # Load tasks for a specific simulator
+    tasks = await client.load_tasks("doordash")
+    print(f"Found {len(tasks)} tasks")
+    
+    # Create environment
+    env = await client.make_environment("doordash")
+    
+    # Start interaction
+    await env.reset()
+    cdp_url = await env.get_cdp_url()
+    
+    # Take actions with your agent
+    your_agent = await YourAgent(cdp_url).start()
+    
+    # Get final state mutations
+    state_changes = await env.get_state()
+    
+    # Clean up
+    await env.close()
+    await client.close()
+
+asyncio.run(main())
 ```
 
 ## Environment Variables
@@ -89,6 +177,19 @@ PLATO_API_KEY=your_api_key
 PLATO_BASE_URL=your_api_endpoint  # Defaults to https://api.plato.so
 ```
 
+## Error Handling
+
+```python
+from plato.exceptions import PlatoClientError
+
+try:
+    env = await client.make_environment("invalid_env_id")
+except PlatoClientError as e:
+    print(f"Plato error: {e}")
+except Exception as e:
+    print(f"Unexpected error: {e}")
+```
+
 <Note>
-Always properly close the client and its environments when done to free up resources.
+Always properly close the client and its environments when done to free up resources. Use context managers (`async with`) for automatic cleanup.
 </Note> 
