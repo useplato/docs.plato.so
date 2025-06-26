@@ -278,6 +278,67 @@ description: 'Get started with Plato - from setup to your first automated browse
     ```
   </Step>
 
+  <Step title="Integrate your own agent">
+    Here's how to integrate your own agent with a Plato environment:
+
+    ```python Python
+    import asyncio
+    from plato import Plato
+
+    class YourAgent:
+        def __init__(self, cdp_url):
+            self.cdp_url = cdp_url
+        
+        async def start(self):
+            # Your agent implementation here
+            # Connect to the browser using the CDP URL
+            # Perform your automation logic
+            print(f"Agent connected to: {self.cdp_url}")
+            # Return any results or state
+            return {"status": "completed", "actions_taken": 5}
+
+    async def main():
+        # Initialize client
+        client = Plato()
+        
+        # List available simulators
+        simulators = await client.list_simulators()
+        print(f"Available simulators: {[s['name'] for s in simulators]}")
+        
+        # Load tasks for a specific simulator
+        tasks = await client.load_tasks("doordash")
+        print(f"Found {len(tasks)} tasks")
+        
+        # Create environment
+        env = await client.make_environment("doordash")
+        await env.wait_for_ready()
+        
+        # Start interaction
+        await env.reset()
+        cdp_url = await env.get_cdp_url()
+        
+        # Take actions with your agent
+        your_agent = YourAgent(cdp_url)
+        agent_result = await your_agent.start()
+        
+        # Get final state mutations
+        state_changes = await env.get_state()
+        
+        print(f"Agent result: {agent_result}")
+        print(f"State changes: {state_changes}")
+        
+        # Clean up
+        await env.close()
+        await client.close()
+
+    asyncio.run(main())
+    ```
+
+    <Note>
+      Replace `YourAgent` with your actual agent implementation. The CDP URL provides direct access to the browser for any automation framework.
+    </Note>
+  </Step>
+
   <Step title="Evaluate task completion">
     After running your automation, evaluate whether the task was completed successfully:
 
