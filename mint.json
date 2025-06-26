@@ -30,13 +30,7 @@
     "name": "Plato Dashboard",
     "url": "https://plato.so"
   },
-  "anchors": [
-    {
-      "name": "Community",
-      "icon": "discord",
-      "url": "https://discord.gg/vR4PPTG6"
-    }
-  ],
+  "anchors": [],
   "navigation": [
     {
       "group": "Get Started",

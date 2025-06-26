@@ -22,6 +22,9 @@ plato = Plato(api_key="your-api-key")
 # Initialize the environment
 env = await plato.make_environment("doordash")
 
+# Wait for environment to be ready
+await env.wait_for_ready()
+
 # Start interaction
 await env.reset()
 cdp_url = await env.get_cdp_url()
@@ -36,15 +39,79 @@ async with async_playwright() as p:
 
 # Get final state mutations
 state_changes = await env.get_state()
+
+# Evaluate task completion
+result = await env.evaluate()
+
+# Clean up
+await env.close()
 ```
 
-### State Management
+### Core Environment Methods
+
+#### Wait for Ready
+Waits for the environment to be fully initialized and ready for use:
+
+```python
+# Wait indefinitely
+await env.wait_for_ready()
+
+# Wait with timeout (60 seconds)
+await env.wait_for_ready(timeout=60.0)
+```
+
+#### Get CDP URL
+Retrieves the Chrome DevTools Protocol URL for browser connection:
+
+```python
+# Must call reset() first to initialize session
+await env.reset()
+cdp_url = await env.get_cdp_url()
+print(f"CDP URL: {cdp_url}")
+```
+
+#### State Management
+Get current environment state and track changes:
+
 ```python
 # Get current state
 state = await env.get_state()
+print(f"Current state: {state}")
 
-# Get state mutations
+# Get list of state mutations
 mutations = await env.get_state_mutations()
+print(f"State changes: {mutations}")
+```
+
+#### Evaluate Task Completion
+Evaluate whether the current task has been completed successfully:
+
+```python
+# Evaluate task completion
+result = await env.evaluate()
+print(f"Task completed: {result.success}")
+if not result.success:
+    print(f"Failure reason: {result.reason}")
+
+# Optional: specify agent version for evaluation
+result = await env.evaluate(agent_version="v1.0")
+```
+
+#### Get Live View URL
+Get URL for real-time environment monitoring:
+
+```python
+# Get live view URL for monitoring
+live_url = await env.get_live_view_url()
+print(f"Monitor at: {live_url}")
+```
+
+#### Close Environment
+Clean up resources when finished:
+
+```python
+# Always close environment to free resources
+await env.close()
 ```
 
 ## Method 2: Custom Browser Setup
