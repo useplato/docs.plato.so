@@ -21,7 +21,7 @@ client = Plato(api_key="your_api_key")
 # Custom configuration
 client = Plato(
     api_key="your_api_key",
-    base_url="https://api.plato.so",  # Optional: API endpoint
+    base_url="https://plato.so/api",  # Optional: API endpoint
 )
 ```
 
@@ -136,28 +136,28 @@ from plato import Plato
 async def main():
     # Initialize client
     client = Plato(api_key="your-api-key")
-    
+
     # List available simulators
     simulators = await client.list_simulators()
     print(f"Available simulators: {[s['name'] for s in simulators]}")
-    
+
     # Load tasks for a specific simulator
     tasks = await client.load_tasks("doordash")
     print(f"Found {len(tasks)} tasks")
-    
+
     # Create environment
     env = await client.make_environment("doordash")
-    
+
     # Start interaction
     await env.reset()
     cdp_url = await env.get_cdp_url()
-    
+
     # Take actions with your agent
     your_agent = await YourAgent(cdp_url).start()
-    
+
     # Get final state mutations
     state_changes = await env.get_state()
-    
+
     # Clean up
     await env.close()
     await client.close()
@@ -174,7 +174,7 @@ The client looks for these environment variables:
 PLATO_API_KEY=your_api_key
 
 # Optional
-PLATO_BASE_URL=your_api_endpoint  # Defaults to https://api.plato.so
+PLATO_BASE_URL=your_api_endpoint  # Defaults to https://plato.so/api
 ```
 
 ## Error Handling
@@ -192,4 +192,4 @@ except Exception as e:
 
 <Note>
 Always properly close the client and its environments when done to free up resources. Use context managers (`async with`) for automatic cleanup.
-</Note> 
+</Note>

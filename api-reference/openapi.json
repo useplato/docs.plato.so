@@ -10,7 +10,7 @@
   },
   "servers": [
     {
-      "url": "http://api.plato.so"
+      "url": "http://plato.so/api"
     }
   ],
   "security": [

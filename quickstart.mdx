@@ -38,7 +38,7 @@ description: 'Get started with Plato - from setup to your first automated browse
 
     ```bash .env
     PLATO_API_KEY=your_api_key_here
-    PLATO_BASE_URL=https://api.plato.so  
+    PLATO_BASE_URL=https://plato.so/api
     ```
 
     The SDK will automatically load these environment variables.
@@ -55,7 +55,7 @@ description: 'Get started with Plato - from setup to your first automated browse
       async def main():
           # Initialize client (uses PLATO_API_KEY from environment)
           client = Plato()
-          
+
           # Create a new environment
           print("Creating environment...")
           env = await client.make_environment(
@@ -64,21 +64,21 @@ description: 'Get started with Plato - from setup to your first automated browse
               viewport_width=1920,
               viewport_height=1080
           )
-          
+
           # Wait for environment to be ready
           print("Waiting for environment to initialize...")
           await env.wait_for_ready(timeout=300.0)
-          
+
           # Start a session
           print("Starting session...")
           await env.reset()
-          
+
           print(f"✅ Environment ready! ID: {env.id}")
-          
+
           # Get live view URL for monitoring
           live_url = await env.get_live_view_url()
           print(f"🔗 Monitor your environment: {live_url}")
-          
+
           # Clean up
           await env.close()
           await client.close()
@@ -94,25 +94,25 @@ description: 'Get started with Plato - from setup to your first automated browse
         try {
           // Initialize client
           const client = new Plato('your-api-key');
-          
+
           // Create environment
           console.log('Creating environment...');
           const env = await client.makeEnvironment('doordash');
-          
+
           // Wait for ready
           console.log('Waiting for environment to initialize...');
           await env.waitForReady(300_000); // 5 minutes
-          
+
           // Start session
           console.log('Starting session...');
           await env.reset();
-          
+
           console.log(`✅ Environment ready! ID: ${env.id}`);
-          
+
           // Get live view URL
           const liveUrl = await env.getLiveViewUrl();
           console.log(`🔗 Monitor: ${liveUrl}`);
-          
+
           // Clean up
           await env.close();
         } catch (error) {
@@ -137,17 +137,17 @@ description: 'Get started with Plato - from setup to your first automated browse
       async def main():
           client = Plato()
           env = await client.make_environment("doordash")
-          
+
           await env.wait_for_ready()
           await env.reset()
-          
+
           # Get CDP URL for browser connection
           cdp_url = await env.get_cdp_url()
-          
+
           # Connect with Playwright
           async with async_playwright() as p:
               browser = await p.chromium.connect_over_cdp(cdp_url)
-              
+
               # Get existing page or create new one
               contexts = browser.contexts
               if contexts:
@@ -157,26 +157,26 @@ description: 'Get started with Plato - from setup to your first automated browse
               else:
                   context = await browser.new_context()
                   page = await context.new_page()
-              
+
               # Navigate to a website
               await page.goto("https://example.com")
-              
+
               # Take screenshot
               await page.screenshot(path="screenshot.png")
-              
+
               # Get page title
               title = await page.title()
               print(f"Page title: {title}")
-              
+
               # Perform actions
               await page.click("h1")  # Click the heading
-              
+
               await browser.close()
-          
+
           # Get environment state
           state = await env.get_state()
           print(f"Environment state: {state}")
-          
+
           await env.close()
           await client.close()
 
@@ -190,28 +190,28 @@ description: 'Get started with Plato - from setup to your first automated browse
       async function main() {
         const client = new Plato('your-api-key');
         const env = await client.makeEnvironment('doordash');
-        
+
         await env.waitForReady();
         await env.reset();
-        
+
         // Connect with Playwright
         const { browser, context, page } = await env.connectWithPlaywright(chromium);
-        
+
         try {
           // Navigate and automate
           await page.goto('https://example.com');
           await page.screenshot({ path: 'screenshot.png' });
-          
+
           const title = await page.title();
           console.log(`Page title: ${title}`);
-          
+
           // Perform actions
           await page.click('h1');
-          
+
           // Get environment state
           const state = await env.getState();
           console.log('Environment state:', state);
-          
+
         } finally {
           await browser.close();
           await env.close();
@@ -236,42 +236,42 @@ description: 'Get started with Plato - from setup to your first automated browse
 
     async def main():
         client = Plato()
-        
+
         # List available simulators
         simulators = await client.list_simulators()
         print("Available simulators:")
         for sim in simulators:
             print(f"  - {sim['name']}: {sim['description']}")
-        
+
         # Load tasks for a specific simulator
         tasks = await client.load_tasks("doordash")
         print(f"\nFound {len(tasks)} tasks for DoorDash:")
-        
+
         for task in tasks[:3]:  # Show first 3 tasks
             print(f"  📋 {task.name}")
             print(f"     Prompt: {task.prompt}")
             print(f"     Start URL: {task.start_url}")
             print(f"     Avg. time: {task.average_time}s")
             print()
-        
+
         # Run a specific task
         if tasks:
             task = tasks[0]
             env = await client.make_environment(task.env_id)
             await env.wait_for_ready()
-            
+
             # Reset with the specific task
             await env.reset(task=task)
-            
+
             # Your agent code would go here
             print(f"🚀 Ready to run task: {task.name}")
-            
+
             # Get live view for monitoring
             live_url = await env.get_live_view_url()
             print(f"🔗 Monitor execution: {live_url}")
-            
+
             await env.close()
-        
+
         await client.close()
 
     asyncio.run(main())
@@ -288,7 +288,7 @@ description: 'Get started with Plato - from setup to your first automated browse
     class YourAgent:
         def __init__(self, cdp_url):
             self.cdp_url = cdp_url
-        
+
         async def start(self):
             # Your agent implementation here
             # Connect to the browser using the CDP URL
@@ -300,33 +300,33 @@ description: 'Get started with Plato - from setup to your first automated browse
     async def main():
         # Initialize client
         client = Plato()
-        
+
         # List available simulators
         simulators = await client.list_simulators()
         print(f"Available simulators: {[s['name'] for s in simulators]}")
-        
+
         # Load tasks for a specific simulator
         tasks = await client.load_tasks("doordash")
         print(f"Found {len(tasks)} tasks")
-        
+
         # Create environment
         env = await client.make_environment("doordash")
         await env.wait_for_ready()
-        
+
         # Start interaction
         await env.reset()
         cdp_url = await env.get_cdp_url()
-        
+
         # Take actions with your agent
         your_agent = YourAgent(cdp_url)
         agent_result = await your_agent.start()
-        
+
         # Get final state mutations
         state_changes = await env.get_state()
-        
+
         print(f"Agent result: {agent_result}")
         print(f"State changes: {state_changes}")
-        
+
         # Clean up
         await env.close()
         await client.close()
@@ -344,11 +344,11 @@ description: 'Get started with Plato - from setup to your first automated browse
 
     ```python Python
     # After running your automation logic
-    
+
     # Get final environment state
     final_state = await env.get_state()
     print(f"Final state: {final_state}")
-    
+
     # Evaluate task completion
     result = await env.evaluate()
     print(f"Task completed: {result.success}")
@@ -356,7 +356,7 @@ description: 'Get started with Plato - from setup to your first automated browse
         print("✅ Task completed successfully!")
     else:
         print(f"❌ Task failed: {result.reason}")
-    
+
     # Optionally log results
     await env.log({
         "task_name": task.name,
