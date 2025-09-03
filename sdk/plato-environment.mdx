@@ -191,8 +191,7 @@ print(f"Public URL: {public_url}")
 
 # Launch browser without proxy
 async with async_playwright() as p:
-    browser = await p.chromium.launch(
-    )
+    browser = await p.chromium.launch()
     
     page = await browser.new_page()
     
