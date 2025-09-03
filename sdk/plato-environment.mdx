@@ -7,7 +7,7 @@ description: 'How to access and use Plato environments'
 
 There are two ways to access and use a Plato environment: using Plato's managed browser (recommended) or setting up your own custom browser.
 
-## Method 1: Using Plato's Managed Browser (Recommended)
+## Method 1: Using Plato's Managed Browser
 
 <Note>
 This is the recommended way to access the environment as it provides seamless integration with Plato's infrastructure and state management.
@@ -20,7 +20,7 @@ from plato import Plato
 plato = Plato(api_key="your-api-key")
 
 # Initialize the environment
-env = await plato.make_environment("doordash")
+env = await plato.make_environment("espocrm")
 
 # Wait for environment to be ready
 await env.wait_for_ready()
@@ -123,11 +123,132 @@ If you need full control over the browser configuration, you can set up your own
 For recorded apps like DoorDash, Uber, etc., you need to use Plato's proxy configuration to ensure proper state tracking and interaction recording. You can find the complete example in our GitHub repository at [custom_browser_environment.py](https://github.com/useplato/plato-client/blob/main/benchmarker/examples/custom_browser_environment.py).
 
 ```python
+from plato import Plato
+from playwright.async_api import async_playwright
+
+# Initialize client
+client = Plato(api_key="your-api-key")
+
+# Create environment for recorded app
+env = await client.make_environment(
+    env_id="doordash",  # or other recorded app
+    interface_type=None,  # Required for custom browser
+)
+
+# Initialize environment
+await env.wait_for_ready()
+await env.reset()
+
+# Get proxy configuration
+proxy_config = await env.get_proxy_config()
+# Returns:
+# {
+#     "server": "https://proxy.plato.so",
+#     "username": "<env_id>",
+#     "password": "<session_id>"
+# }
+
+# Launch browser with proxy
+async with async_playwright() as p:
+    browser = await p.chromium.launch(
+        headless=False,  # Set to True for headless mode
+        proxy=proxy_config,
+        args=[
+            "--ignore-certificate-errors",
+            "--ignore-ssl-errors",
+            "--disable-http2",
+        ],
+    )
+    
+    page = await browser.new_page()
+    # Your automation code here
+```
+
+### For Non-Recorded Apps (Using Public URL)
+
+For non-recorded apps (regular software applications), you can use the public URL directly without proxy configuration:
+
+```python
+from plato import Plato
+from playwright.async_api import async_playwright
+
+# Initialize client
+client = Plato(api_key="your-api-key")
+
+# Create environment for non-recorded app
+env = await client.make_environment(
+    env_id="espocrm",  
+    interface_type=None,  # Required for custom browser
+)
+
+# Initialize environment
+await env.wait_for_ready()
+await env.reset()
+
+# Get public URL instead of proxy
+public_url = await env.get_public_url()
+print(f"Public URL: {public_url}")
+
+# Launch browser without proxy
+async with async_playwright() as p:
+    browser = await p.chromium.launch(
+    )
+    
+    page = await browser.new_page()
+    
+    # Navigate to the public URL
+    await page.goto(public_url)
+    
+    # Your automation code here
+```
+
+## Method 3: Using Sync Plato Client
+
+If you prefer synchronous code or cannot use async/await in your environment, you can use the sync Plato client instead:
+
+### Basic Sync Environment Usage
+
+```python
 from plato.sync_sdk import SyncPlato
 from playwright.sync_api import sync_playwright
 
-# Initialize client
-client = SyncPlato()
+# Initialize sync client
+plato = SyncPlato(api_key="your-api-key")
+
+# Initialize the environment
+env = plato.make_environment("espocrm")
+
+# Wait for environment to be ready
+env.wait_for_ready()
+
+# Start interaction
+env.reset()
+cdp_url = env.get_cdp_url()
+
+# Connect using CDP
+with sync_playwright() as p:
+    browser = p.chromium.connect_over_cdp(cdp_url)
+    page = browser.new_page()
+    # Your automation code here
+
+# Get final state mutations
+state_changes = env.get_state()
+
+# Evaluate task completion
+result = env.evaluate()
+
+# Clean up
+env.close()
+```
+
+### Sync Environment for Recorded Apps (Using Proxy)
+
+```python
+from plato.sync_sdk import SyncPlato
+from playwright.sync_api import sync_playwright
+
+# Initialize sync client
+client = SyncPlato(api_key="your-api-key")
 
 # Create environment for recorded app
 env = client.make_environment(
@@ -141,12 +262,6 @@ env.reset()
 
 # Get proxy configuration
 proxy_config = env.get_proxy_config()
-# Returns:
-# {
-#     "server": "https://proxy.plato.so",
-#     "username": "<env_id>",
-#     "password": "<session_id>"
-# }
 
 # Launch browser with proxy
 with sync_playwright() as p:
@@ -162,18 +277,19 @@ with sync_playwright() as p:
     
     page = browser.new_page()
     # Your automation code here
+    
+# Clean up
+env.close()
 ```
 
-### For Non-Recorded Apps (Using Public URL)
-
-For non-recorded apps (regular software applications), you can use the public URL directly without proxy configuration:
+### Sync Environment for Non-Recorded Apps (Using Public URL)
 
 ```python
 from plato.sync_sdk import SyncPlato
 from playwright.sync_api import sync_playwright
 
-# Initialize client
-client = SyncPlato()
+# Initialize sync client
+client = SyncPlato(api_key="your-api-key")
 
 # Create environment for non-recorded app
 env = client.make_environment(
@@ -191,15 +307,16 @@ print(f"Public URL: {public_url}")
 
 # Launch browser without proxy
 with sync_playwright() as p:
-    browser = p.chromium.launch(
-    )
-    
+    browser = p.chromium.launch()
     page = browser.new_page()
     
     # Navigate to the public URL
     page.goto(public_url)
     
     # Your automation code here
+
+# Clean up
+env.close()
 ```
 
 ## Common Issues & Solutions
@@ -207,35 +324,17 @@ with sync_playwright() as p:
 ### 1. Environment Not Ready
 ```python
 # Always wait for environment to be ready
-await env.wait_for_ready()  # This is required before any operations
+await env.wait_for_ready()  # Async version
+# OR
+env.wait_for_ready()  # Sync version
 ```
 
 ### 2. Session Not Initialized
 ```python
 # Reset environment to initialize session
-await env.reset()  # Required before getting cdp_url
-```
-
-### 3. CDP Connection Failed
-```python
-# Verify CDP URL
-cdp_url = await env.get_cdp_url()
-print(f"CDP URL: {cdp_url}")
-```
-
-## Environment URLs
-
-You can access your environment through several URLs:
-
-```python
-# Get live view URL (for monitoring)
-live_url = await env.get_live_view_url()
-
-# Get public URL
-public_url = await env.get_public_url()
-
-# Get session URL
-session_url = await env.get_session_url()
+await env.reset()  # Async version - required before getting cdp_url
+# OR  
+env.reset()  # Sync version - required before getting cdp_url
 ```
 
 ## Required Environment Variables
