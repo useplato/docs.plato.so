@@ -1,0 +1,44 @@
+---
+title: 'Installation'
+description: 'Install Plato CLI and get started with simulator development'
+---
+
+# Installing Plato CLI
+
+The Plato CLI provides powerful tools for managing simulators, creating development environments, and deploying your changes.
+
+## Quick Installation
+
+Install Plato CLI globally using uv:
+
+```bash
+uv tool install plato-sdk
+```
+
+## Set Up Authentication
+
+Configure your API key from the [Plato dashboard](https://plato.so/settings):
+
+Create a `.env` file:
+
+```bash .env
+PLATO_API_KEY=your-api-key-here
+```
+
+## Verify Setup
+
+Test your connection:
+
+```bash
+plato list-simulators
+```
+
+You should see a list of available simulators.
+
+## Next Steps
+
+Ready to start developing? Check out our guides:
+
+- **[Quickstart Guide](/hub/quickstart)** - Clone your first simulator
+- **[Development Sandbox](/hub/development-sandbox)** - Set up isolated development environment  
+- **[Simulator Management](/hub/simulator-management)** - Learn all CLI commands

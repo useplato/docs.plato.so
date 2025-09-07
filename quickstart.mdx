@@ -6,33 +6,22 @@ description: 'Get started with Plato - from setup to your first automated browse
 
 <Steps>
   <Step title="Generate your API key">
-    Head to the `Settings` tab on the [Plato dashboard](https://plato.so) and copy your API key. Keep this secure - you'll need it for all API requests.
+    Head to the [Plato dashboard](https://plato.so/settings) and copy your API key. Keep this secure - you'll need it for all API requests.
 
     <Warning>
       Your API key provides access to your Plato environments. Never share it publicly or commit it to version control.
     </Warning>
   </Step>
 
-  <Step title="Install the SDK">
-    Choose your preferred language and install the Plato SDK:
+  <Step title="Install Plato CLI">
+    Install the Plato CLI for simulator development:
 
-    <CodeGroup>
-      ```bash Python
-      pip install plato-sdk
-      
-      # or using uv
-      uv add plato-sdk
-      ```
-
-      ```bash JavaScript
-      npm install plato-sdk
-      # or
-      yarn add plato-sdk
-      ```
-    </CodeGroup>
+    ```bash
+    uv tool install plato-sdk
+    ```
 
     <Tip>
-      Python SDK requires Python 3.8+ and JavaScript SDK requires Node.js 16+
+      The CLI requires Python 3.8+ and provides access to all Plato Hub features
     </Tip>
   </Step>
 
@@ -47,352 +36,85 @@ description: 'Get started with Plato - from setup to your first automated browse
     The SDK will automatically load these environment variables.
   </Step>
 
-  <Step title="Create your first environment">
-    Let's create a browser environment and connect to it:
+  <Step title="Clone your first simulator">
+    Let's clone an existing simulator and start developing:
 
-    <CodeGroup>
-      ```python Python
-      import asyncio
-      from plato import Plato
+    ```bash
+    # See what simulators are available
+    plato list-simulators
 
-      async def main():
-          # Initialize client (uses PLATO_API_KEY from environment)
-          client = Plato()
+    # Clone a simulator 
+    plato hub clone custom-sim
+    cd custom-sim
 
-          # Create a new environment
-          print("Creating environment...")
-          env = await client.make_environment(
-              env_id="doordash",  # Choose from available simulators
-              open_page_on_start=True,
-              viewport_width=1920,
-              viewport_height=1080
-          )
+    # Check the configuration
+    cat plato-config.yml
+    ```
 
-          # Wait for environment to be ready
-          print("Waiting for environment to initialize...")
-          await env.wait_for_ready(timeout=300.0)
-
-          # Start a session
-          print("Starting session...")
-          await env.reset()
-
-          print(f"✅ Environment ready! ID: {env.id}")
-
-          # Get live view URL for monitoring
-          live_url = await env.get_live_view_url()
-          print(f"🔗 Monitor your environment: {live_url}")
-
-          # Clean up
-          await env.close()
-          await client.close()
-
-      if __name__ == "__main__":
-          asyncio.run(main())
-      ```
-
-      ```javascript JavaScript
-      import { Plato } from 'plato-client';
-
-      async function main() {
-        try {
-          // Initialize client
-          const client = new Plato('your-api-key');
-
-          // Create environment
-          console.log('Creating environment...');
-          const env = await client.makeEnvironment('doordash');
-
-          // Wait for ready
-          console.log('Waiting for environment to initialize...');
-          await env.waitForReady(300_000); // 5 minutes
-
-          // Start session
-          console.log('Starting session...');
-          await env.reset();
-
-          console.log(`✅ Environment ready! ID: ${env.id}`);
-
-          // Get live view URL
-          const liveUrl = await env.getLiveViewUrl();
-          console.log(`🔗 Monitor: ${liveUrl}`);
-
-          // Clean up
-          await env.close();
-        } catch (error) {
-          console.error('Error:', error);
-        }
-      }
-
-      main();
-      ```
-    </CodeGroup>
+    This downloads the simulator code and sets up your local development environment.
   </Step>
 
-  <Step title="Connect with browser automation">
-    Now let's connect to the environment and perform some browser automation:
+  <Step title="Start development sandbox">
+    Now let's start a development sandbox to test your changes:
 
-    <CodeGroup>
-      ```python Python
-      import asyncio
-      from plato import Plato
-      from playwright.async_api import async_playwright
+    ```bash
+    # Start a development sandbox with live VM
+    plato hub sandbox
 
-      async def main():
-          client = Plato()
-          env = await client.make_environment("doordash")
+    # This will:
+    # 1. Create a development branch
+    # 2. Start a VM with your code
+    # 3. Set up SSH tunneling
+    # 4. Present interactive menu for development
+    ```
 
-          await env.wait_for_ready()
-          await env.reset()
-
-          # Get CDP URL for browser connection
-          cdp_url = await env.get_cdp_url()
-
-          # Connect with Playwright
-          async with async_playwright() as p:
-              browser = await p.chromium.connect_over_cdp(cdp_url)
-
-              # Get existing page or create new one
-              contexts = browser.contexts
-              if contexts:
-                  context = contexts[0]
-                  pages = context.pages
-                  page = pages[0] if pages else await context.new_page()
-              else:
-                  context = await browser.new_context()
-                  page = await context.new_page()
-
-              # Navigate to a website
-              await page.goto("https://example.com")
-
-              # Take screenshot
-              await page.screenshot(path="screenshot.png")
-
-              # Get page title
-              title = await page.title()
-              print(f"Page title: {title}")
-
-              # Perform actions
-              await page.click("h1")  # Click the heading
-
-              await browser.close()
-
-          # Get environment state
-          state = await env.get_state()
-          print(f"Environment state: {state}")
-
-          await env.close()
-          await client.close()
-
-      asyncio.run(main())
-      ```
-
-      ```javascript JavaScript
-      import { Plato } from 'plato-client';
-      import { chromium } from 'playwright';
-
-      async function main() {
-        const client = new Plato('your-api-key');
-        const env = await client.makeEnvironment('doordash');
-
-        await env.waitForReady();
-        await env.reset();
-
-        // Connect with Playwright
-        const { browser, context, page } = await env.connectWithPlaywright(chromium);
-
-        try {
-          // Navigate and automate
-          await page.goto('https://example.com');
-          await page.screenshot({ path: 'screenshot.png' });
-
-          const title = await page.title();
-          console.log(`Page title: ${title}`);
-
-          // Perform actions
-          await page.click('h1');
-
-          // Get environment state
-          const state = await env.getState();
-          console.log('Environment state:', state);
-
-        } finally {
-          await browser.close();
-          await env.close();
-        }
-      }
-
-      main();
-      ```
-    </CodeGroup>
+    Choose **Option 1** to start simulator services, then **Option 2 or 3** to connect your editor (VS Code or Cursor) directly to the VM.
 
     <Note>
-      The environment provides a real browser that persists state between operations. Perfect for complex workflows that require maintaining session data, cookies, and page state.
+      The sandbox provides a complete development environment with your code, database, and services running in an isolated VM that you can connect to directly.
     </Note>
   </Step>
 
-  <Step title="Load and run tasks">
-    Plato provides pre-built tasks for various simulators. Here's how to load and run them:
+  <Step title="Develop and deploy changes">
+    Once you've made changes in your sandbox, deploy them to the Plato registry:
 
-    ```python Python
-    import asyncio
-    from plato import Plato
+    ```bash
+    # Make your changes in the connected editor
 
-    async def main():
-        client = Plato()
-
-        # List available simulators
-        simulators = await client.list_simulators()
-        print("Available simulators:")
-        for sim in simulators:
-            print(f"  - {sim['name']}: {sim['description']}")
-
-        # Load tasks for a specific simulator
-        tasks = await client.load_tasks("doordash")
-        print(f"\nFound {len(tasks)} tasks for DoorDash:")
-
-        for task in tasks[:3]:  # Show first 3 tasks
-            print(f"  📋 {task.name}")
-            print(f"     Prompt: {task.prompt}")
-            print(f"     Start URL: {task.start_url}")
-            print(f"     Avg. time: {task.average_time}s")
-            print()
-
-        # Run a specific task
-        if tasks:
-            task = tasks[0]
-            env = await client.make_environment(task.env_id)
-            await env.wait_for_ready()
-
-            # Reset with the specific task
-            await env.reset(task=task)
-
-            # Your agent code would go here
-            print(f"🚀 Ready to run task: {task.name}")
-
-            # Get live view for monitoring
-            live_url = await env.get_live_view_url()
-            print(f"🔗 Monitor execution: {live_url}")
-
-            await env.close()
-
-        await client.close()
-
-    asyncio.run(main())
-    ```
-  </Step>
-
-  <Step title="Integrate your own agent">
-    Here's how to integrate your own agent with a Plato environment:
-
-    ```python Python
-    import asyncio
-    from plato import Plato
-
-    class YourAgent:
-        def __init__(self, cdp_url):
-            self.cdp_url = cdp_url
-
-        async def start(self):
-            # Your agent implementation here
-            # Connect to the browser using the CDP URL
-            # Perform your automation logic
-            print(f"Agent connected to: {self.cdp_url}")
-            # Return any results or state
-            return {"status": "completed", "actions_taken": 5}
-
-    async def main():
-        # Initialize client
-        client = Plato()
-
-        # List available simulators
-        simulators = await client.list_simulators()
-        print(f"Available simulators: {[s['name'] for s in simulators]}")
-
-        # Load tasks for a specific simulator
-        tasks = await client.load_tasks("doordash")
-        print(f"Found {len(tasks)} tasks")
-
-        # Create environment
-        env = await client.make_environment("doordash")
-        await env.wait_for_ready()
-
-        # Start interaction
-        await env.reset()
-        cdp_url = await env.get_cdp_url()
-
-        # Take actions with your agent
-        your_agent = YourAgent(cdp_url)
-        agent_result = await your_agent.start()
-
-        # Get final state mutations
-        state_changes = await env.get_state()
-
-        print(f"Agent result: {agent_result}")
-        print(f"State changes: {state_changes}")
-
-        # Clean up
-        await env.close()
-        await client.close()
-
-    asyncio.run(main())
+    # Commit and deploy your changes  
+    git add .
+    git commit -m "Add new feature"
+    plato hub git push
     ```
 
-    <Note>
-      Replace `YourAgent` with your actual agent implementation. The CDP URL provides direct access to the browser for any automation framework.
-    </Note>
-  </Step>
-
-  <Step title="Evaluate task completion">
-    After running your automation, evaluate whether the task was completed successfully:
-
-    ```python Python
-    # After running your automation logic
-
-    # Get final environment state
-    final_state = await env.get_state()
-    print(f"Final state: {final_state}")
-
-    # Evaluate task completion
-    result = await env.evaluate()
-    print(f"Task completed: {result.success}")
-    if result.success:
-        print("✅ Task completed successfully!")
-    else:
-        print(f"❌ Task failed: {result.reason}")
-
-    # Optionally log results
-    await env.log({
-        "task_name": task.name,
-        "success": result.success,
-        "custom_data": "any additional info"
-    }, type="info")
-    ```
+    Your changes are now deployed and available for use!
   </Step>
 </Steps>
 
 ## What's Next?
 
 <CardGroup cols={2}>
-  <Card title="Explore SDKs" icon="code" href="/sdk/plato-client">
-    Dive deeper into the Plato Client SDK and advanced environment management
+  <Card title="Simulator Management" icon="gear" href="/hub/simulator-management">
+    Learn all CLI commands for creating and managing simulators
   </Card>
-  <Card title="Environment Types" icon="browser" href="/sdk/plato-environment">
-    Learn about different environment types and connection methods
+  <Card title="Development Sandbox" icon="code" href="/hub/development-sandbox">
+    Deep dive into sandbox development with live reloading and debugging
   </Card>
-  <Card title="API Reference" icon="book" href="/api-reference">
-    Complete API documentation for all endpoints and methods
+  <Card title="SDK Reference" icon="book" href="/sdk/plato-client">
+    Explore the Python/JavaScript SDKs for automation
   </Card>
   <Card title="Examples" icon="play" href="/examples">
-    Real-world examples and use cases for various automation scenarios
+    Real-world examples and common development patterns
   </Card>
 </CardGroup>
 
 ## Need Help?
 
-- **Environment not starting?** Check that your API key is valid and you have sufficient credits
-- **Browser connection issues?** Ensure you're calling `reset()` before `get_cdp_url()`
-- **Task evaluation failing?** Review the task requirements and ensure your automation achieves the expected outcome
+- **CLI installation issues?** Make sure you have Python 3.8+ and try `uv --version` to verify uv is installed
+- **Authentication problems?** Double-check your API key and ensure it's properly set in your environment
+- **Sandbox won't start?** Verify you're in a directory with `.plato-hub.json` configuration
+- **Git operations failing?** Run `uv run plato hub login` to refresh your credentials
 
 <Tip>
-  Use the live view URL to monitor your environment in real-time. This is invaluable for debugging and understanding how your automation is performing.
+  The development sandbox provides live SSH access to your VM. Use VS Code or Cursor's remote SSH features for the best development experience.
 </Tip>

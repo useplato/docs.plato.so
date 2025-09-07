@@ -1,0 +1,147 @@
+---
+title: 'Quickstart'
+description: 'Your first steps with Plato Hub - clone a simulator and start developing'
+---
+
+# Quickstart Guide
+
+Get up and running with Plato Hub in minutes. Create and deploy your first simulator with just a few commands.
+
+## Your First Simulator
+
+<Steps>
+  <Step title="Clone a Simulator">
+    Clone an existing simulator:
+
+    ```bash
+    plato hub clone custom-sim
+    cd custom-sim
+    ```
+
+    This downloads the simulator code and sets up your local development.
+  </Step>
+
+  <Step title="Create Configuration">
+    Create your `plato-config.yml` file:
+
+    ```yaml plato-config.yml
+    compute:
+      cpus: 1                    # Number of CPU cores for the VM
+      memory: 2048               # Memory in MB for the VM
+      disk: 10240                # Disk space in MB for the VM
+      app_port: 8080             # Port your main application runs on
+      plato_messaging_port: 7000 # Port for Plato worker communication
+
+    datasets:
+      base:                      # Dataset name - you can have multiple
+        entrypoint:
+          type: "docker"         # How to start services (only "docker" supported)
+          file: "docker-compose.yml"        # Path to your docker compose file
+          healthy_wait_timeout: 300         # Seconds to wait for services to start
+          required_services: ["*"]          # Services to wait for ("*" = all)
+        mutation_listeners:      # Database monitoring configuration
+          db:                    # Listener name (can be anything)
+            type: "db"           # Type of listener (only "db" supported)
+            db_type: "postgresql" # Database type
+            db_host: "localhost" # Database host
+            db_port: 5432        # Database port
+            db_user: "app_user"  # Database user
+            db_password: "password"          # Database password
+            db_database: "app_db"            # Database name
+    ```
+
+    This configuration defines your VM resources and how your simulator runs.
+  </Step>
+
+  <Step title="Deploy">
+    Push your changes to deploy:
+
+    ```bash
+    plato hub git push
+    ```
+
+    That's it! Your simulator is now deployed and ready to use.
+    
+    **Your deployed simulator is accessible as:**
+    - **Service:** `custom-sim`
+    - **Version:** `{git-commit-hash}` (e.g., `a1b2c3d`)
+    - **Tag:** `{git-branch-name}` (e.g., `main`, `feature-auth`)
+  </Step>
+</Steps>
+
+## Project Structure
+
+Your simulator project needs just one required file:
+
+```
+custom-sim/
+  plato-config.yml           # Required: VM and service configuration
+  
+  # Your app files - organize however you like
+  src/
+  app/
+  config/
+  docker-compose.yml
+  ...
+```
+
+**`plato-config.yml`** - The only required file. Defines your VM resources, datasets, and how services start.
+
+## Configuration Reference
+
+### Compute Section
+
+The `compute` section defines the VM resources for your simulator:
+
+- **`cpus`** (1-8) - Number of CPU cores allocated to the VM
+- **`memory`** (512-16384 MB) - RAM allocated to the VM  
+- **`disk`** (1024-102400 MB) - Disk space for the VM
+- **`app_port`** (1024-65535) - Port your main application listens on
+- **`plato_messaging_port`** (1024-65535) - Port for Plato worker communication
+
+### Datasets Section
+
+The `datasets` section defines different environments (base, test, production-copy, etc.):
+
+#### Entrypoint Configuration
+
+- **`type`** - Always "docker" (only supported type)
+- **`file`** - Path to your docker-compose.yml file
+- **`healthy_wait_timeout`** (30-1800 seconds) - How long to wait for services to start
+- **`required_services`** - Array of service names to wait for, or ["*"] for all services
+
+#### Mutation Listeners
+
+Database monitoring configuration for tracking state changes:
+
+- **`type`** - Always "db" (only supported type)
+- **`db_type`** - Database type: "postgresql", "mysql", or "sqlite"  
+- **`db_host`** - Database hostname or IP
+- **`db_port`** - Database port number
+- **`db_user`** - Database username
+- **`db_password`** - Database password
+- **`db_database`** - Database name
+
+### Multiple Datasets Example
+
+```yaml
+datasets:
+  base:
+    entrypoint:
+      file: "docker-compose.yml"
+      required_services: ["web", "db"]  # Only wait for specific services
+    mutation_listeners:
+      main-db: { ... }
+      
+  test-data:
+    entrypoint:
+      file: "test/docker-compose.yml"
+      healthy_wait_timeout: 600  # Longer timeout for test environment
+    mutation_listeners:
+      test-db: { ... }
+```
+
+## Next Steps
+
+- **[Development Sandbox](/hub/development-sandbox)** - Test your changes in isolated environments
+- **[Simulator Management](/hub/simulator-management)** - Learn all CLI commands

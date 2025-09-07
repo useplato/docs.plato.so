@@ -47,6 +47,15 @@
       ]
     },
     {
+      "group": "Plato Hub",
+      "pages": [
+        "hub/installation",
+        "hub/quickstart",
+        "hub/simulator-management", 
+        "hub/development-sandbox"
+      ]
+    },
+    {
       "group": "Examples",
       "pages": [
         "examples"

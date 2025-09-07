@@ -1,0 +1,202 @@
+---
+title: 'Simulator Management'
+description: 'Commands for creating, cloning, and managing Plato simulators'
+---
+
+# Simulator Management
+
+Plato Hub provides powerful commands for managing simulators throughout their lifecycle - from creation to deployment.
+
+## Creating New Simulators
+
+### Initialize a New Simulator
+
+Create a brand new simulator with repository setup:
+
+```bash
+plato hub init <simulator-name> [options]
+```
+
+<ParamField path="simulator-name" type="string" required>
+  Name of the new simulator (e.g., `myapp`, `crm-system`)
+</ParamField>
+
+<ParamField path="--description" type="string">
+  Description for the new simulator
+</ParamField>
+
+<ParamField path="--sim-type" type="string" default="docker_app">
+  Type of simulator to create
+</ParamField>
+
+<ParamField path="--directory" type="string">
+  Directory to create and clone into (defaults to simulator name)
+</ParamField>
+
+**Example:**
+```bash
+plato hub init custom-sim --description "Custom CRM simulator" --directory ./my-crm-app
+```
+
+This command:
+1. Creates a new simulator in the Plato registry
+2. Sets up a Git repository for the simulator  
+3. Clones the repository to your local machine
+4. Configures the local directory for development
+
+## Working with Existing Simulators
+
+### Clone an Existing Simulator
+
+Download and set up a local copy of an existing simulator:
+
+```bash
+plato hub clone <simulator-name> [--directory <path>]
+```
+
+**Example:**
+```bash
+plato hub clone custom-sim
+cd custom-sim
+```
+
+### Link Local Directory 
+
+Link an existing directory to a simulator (useful for monorepos):
+
+```bash
+plato hub link <simulator-name> [directory]
+```
+
+This creates a `.plato-hub.json` configuration without cloning - perfect for integrating simulators into existing codebases.
+
+## Git Operations
+
+Plato Hub provides enhanced git commands that understand simulator repositories:
+
+### Authenticate with Hub
+
+Set up authentication for git operations:
+
+```bash
+plato hub login
+```
+
+This caches your credentials securely for seamless git operations.
+
+### Push Changes
+
+Push your local changes to the simulator repository:
+
+```bash
+plato hub git push [branch-name]
+```
+
+<Tip>
+  Hub git commands work in "isolation" - they sync only the simulator files without affecting your monorepo structure.
+</Tip>
+
+### Pull Updates
+
+Pull updates from the simulator repository:
+
+```bash
+plato hub git pull
+```
+
+### Check Status
+
+See the difference between your local simulator and the remote:
+
+```bash
+plato hub git status
+plato hub git diff
+```
+
+## Listing Simulators
+
+### Available Simulators
+
+See all simulators you have access to:
+
+```bash
+plato list-simulators
+```
+
+This shows:
+- Simulator names and descriptions
+- Enabled/disabled status  
+- Access permissions
+
+## Configuration Management
+
+### Default Configuration
+
+When you clone or create a simulator, Plato automatically creates a `plato-config.yml` file:
+
+```yaml
+compute:
+  cpus: 1
+  memory: 2048
+  disk: 10240
+  app_port: 8080
+  plato_messaging_port: 7000
+
+datasets:
+  base:
+    entrypoint:
+      type: "docker"
+      file: "datasets/base/docker-compose.yml"
+      healthy_wait_timeout: 300
+      required_services: ["*"]
+    mutation_listeners:
+      container-1:
+        type: "db"
+        db_type: "postgresql" 
+        db_host: "localhost"
+        db_port: 5432
+        db_user: "app_user"
+        db_password: "${DB_PASSWORD}"
+        db_database: "app_db"
+```
+
+### Configuration Options
+
+<CardGroup cols={2}>
+  <Card title="Compute Resources" icon="server">
+    Configure CPU, memory, and disk for your VM
+  </Card>
+  
+  <Card title="Datasets" icon="database">
+    Define different environments (base, test, prod-copy)
+  </Card>
+  
+  <Card title="Entrypoints" icon="play">
+    Specify how your simulator services start up
+  </Card>
+  
+  <Card title="Mutation Listeners" icon="ear-listen">
+    Monitor database changes for state tracking
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Tip>
+  **Monorepo Integration:** Use `plato hub link` instead of `clone` when working with monorepos to avoid nested git repositories.
+</Tip>
+
+<Tip>
+  **Branch Strategy:** Use feature branches for development, push to `main` for production snapshots.
+</Tip>
+
+<Warning>
+  Always run `plato hub login` before git operations to ensure proper authentication.
+</Warning>
+
+## Next Steps
+
+Now that you understand simulator management, learn about:
+
+- **[Development Sandbox](/hub/development-sandbox)** - Test your changes in isolated environments
+- **[Deployment Workflow](/hub/deployment-workflow)** - Publish and version your simulators

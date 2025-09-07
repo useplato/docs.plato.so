@@ -1,0 +1,140 @@
+---
+title: 'Quickstart'
+description: 'Your first steps with Plato Hub - clone a simulator and start developing'
+---
+
+# Quickstart Guide
+
+Plato Hub makes it easy to develop and manage simulators. This guide will walk you through cloning your first simulator and setting up a development environment.
+
+## Overview
+
+With Plato Hub, you can:
+- **Clone existing simulators** to your local machine
+- **Develop in isolated environments** with full Docker support
+- **Test changes in real-time** with live reloading
+- **Deploy changes** with automatic versioning
+
+## Your First Simulator
+
+Let's clone and run an existing simulator to see how everything works.
+
+<Steps>
+  <Step title="List Available Simulators">
+    See what simulators are available:
+
+    ```bash
+    uv run plato list-simulators
+    ```
+
+    You'll see a table showing all available simulators with their status and descriptions.
+  </Step>
+
+  <Step title="Clone a Simulator">
+    Clone an existing simulator (we'll use `espocrm` as an example):
+
+    ```bash
+    uv run plato hub clone espocrm
+    ```
+
+    This creates a local directory with the simulator code and sets up git remote configuration.
+  </Step>
+
+  <Step title="Navigate to Simulator">
+    Enter the cloned simulator directory:
+
+    ```bash
+    cd espocrm
+    ```
+
+    You'll find the simulator's source code, configuration files, and documentation.
+  </Step>
+
+  <Step title="Check Configuration">
+    Look at the simulator configuration:
+
+    ```bash
+    cat plato-config.yml
+    ```
+
+    This file defines compute resources, datasets, and entrypoints for the simulator.
+  </Step>
+</Steps>
+
+## Understanding the Structure
+
+A typical Plato simulator has this structure:
+
+```
+espocrm/
+├── plato-config.yml          # VM and dataset configuration
+├── datasets/
+│   └── base/
+│       └── docker-compose.yml   # Main application services  
+├── src/
+│   └── espocrm/
+│       └── env.py           # Mutation listeners and environment setup
+└── .plato-hub.json          # Hub configuration (auto-generated)
+```
+
+### Key Files
+
+<CardGroup cols={2}>
+  <Card title="plato-config.yml" icon="gear">
+    Defines compute resources, datasets, and how services start up
+  </Card>
+  
+  <Card title="docker-compose.yml" icon="docker">
+    Defines your application services (database, web app, etc.)
+  </Card>
+  
+  <Card title="env.py" icon="python">
+    Configures mutation listeners for tracking database changes
+  </Card>
+  
+  <Card title=".plato-hub.json" icon="link">
+    Links your local directory to the remote simulator repository
+  </Card>
+</CardGroup>
+
+## Configuration Structure
+
+The `plato-config.yml` file defines how your simulator runs:
+
+```yaml plato-config.yml
+compute:
+  cpus: 1
+  memory: 2048        # MB
+  disk: 10240         # MB  
+  app_port: 8080
+  plato_messaging_port: 7000
+
+datasets:
+  base:
+    entrypoint:
+      type: "docker"
+      file: "datasets/base/docker-compose.yml"
+      healthy_wait_timeout: 300
+      required_services: ["*"]  # Wait for all services
+    mutation_listeners:
+      container-1:
+        type: "db"
+        db_type: "postgresql"
+        db_host: "localhost"
+        db_port: 5432
+        db_user: "app_user"
+        db_password: "${DB_PASSWORD}"
+        db_database: "app_db"
+```
+
+## Next Steps
+
+Now that you have a simulator cloned locally, you can:
+
+- **[Set up a development sandbox](/hub/development-sandbox)** to test your changes
+- **[Learn about simulator management](/hub/simulator-management)** commands
+- **[Understand the deployment workflow](/hub/deployment-workflow)** for publishing changes
+
+<Tip>
+  Each simulator can have multiple datasets (like `base`, `test-data`, `production-copy`) with different configurations and data sets.
+</Tip>
