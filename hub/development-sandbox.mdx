@@ -1,221 +1,416 @@
 ---
-title: 'Development Sandbox'
-description: 'Create isolated development environments for testing simulator changes'
+title: 'Plato Hub CLI'
+description: 'Interactive CLI for managing virtual machines and simulator development'
 ---
 
-# Development Sandbox
+The Plato Hub CLI provides an interactive terminal interface for creating, managing, and snapshotting virtual machines for simulator development.
 
-The Plato development sandbox creates a complete VM environment where you can test your simulator changes in isolation, with live code sync and interactive development tools.
+## Starting the CLI
 
-## Starting a Sandbox
-
-From any simulator directory with a `.plato-hub.json` file:
+Launch the interactive CLI from your terminal:
 
 ```bash
-plato hub sandbox
+uv run plato hub
 ```
 
-### Command Options
+Or if installed globally:
 
-<ParamField path="--config" type="string" default="plato-config.yml">
-  Path to VM configuration file
-</ParamField>
-
-<ParamField path="--dataset" type="string" default="base">
-  Dataset to use for the sandbox environment
-</ParamField>
-
-<ParamField path="--keep-vm" type="boolean" default="false">
-  Keep VM running after sandbox exits (for debugging)
-</ParamField>
-
-<ParamField path="--chisel-port" type="integer" default="6000">
-  Port for SSH tunneling server
-</ParamField>
-
-**Example:**
 ```bash
-plato hub sandbox --dataset production-copy --keep-vm
+plato hub
 ```
 
-## Sandbox Workflow
+## Main Menu
 
-When you start a sandbox, Plato automatically:
+When you launch the CLI, you'll see the main menu:
 
-<Steps>
-  <Step title="Create Development Branch">
-    Creates a unique development branch (`dev-abc123`) and pushes your current code
-  </Step>
+![Plato Hub Main Menu](/images/main_menu.png)
 
-  <Step title="Start Virtual Machine">
-    Launches a VM with the resources defined in `plato-config.yml`
-  </Step>
+The main menu offers:
+- **Launch Environment** - Create or resume a virtual machine
+- **Configuration** - View API key and settings
+- **Quit** - Exit the CLI
 
-  <Step title="Set Up Code Sync">
-    Clones your development branch to `/opt/plato` in the VM
-  </Step>
+## Creating a Virtual Machine
 
-  <Step title="Configure SSH Access">
-    Sets up secure SSH tunneling for direct VM access
-  </Step>
+Select "Launch Environment" to begin. You have three options for creating a VM:
 
-  <Step title="Interactive Menu">
-    Presents options for starting services and connecting editors
-  </Step>
-</Steps>
+### Option 1: Blank VM (Manual Configuration)
 
-## Interactive Menu
+Configure VM resources through interactive prompts:
 
-Once your sandbox is ready, you'll see an interactive menu:
+![Configure Virtual Machine](/images/blank_vm_config.png)
 
-```
-               📋 Sandbox Menu                
-┏━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Option ┃ Action                            ┃
-┡━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ 1      │ Start simulator services          │
-│ 2      │ Open VS Code connected to sandbox │
-│ 3      │ Open Cursor connected to sandbox  │
-│ 4      │ Show VM info                      │
-│ 5      │ Stop sandbox and cleanup          │
-└────────┴───────────────────────────────────┘
-```
+You'll be prompted for:
+- **CPU Count** - Number of virtual CPUs (1-2)
+- **Memory (MB)** - RAM allocation (128-4096 MB)
+- **Disk Space (MB)** - Storage allocation (1024-102400 MB)
+- **Dataset Name** - Name for the dataset in plato-config.yml
+- **Service Name** - Name of the service (e.g., my-app, api-service)
+- **Save Configuration** - Optionally save to plato-config.yml
 
-### Option 1: Start Simulator Services
+After configuration, click "Create!" to provision the VM.
 
-Starts your simulator with the specified dataset:
+### Option 2: From plato-config.yml
 
-- Reads `plato-config.yml` to understand your setup
-- Starts main application services (database, web app, etc.)
-- Waits for services to become healthy
-- Starts Plato worker for mutation listening
-- Runs everything as a systemd service in the background
+If you have a `plato-config.yml` file in your current directory, the CLI will automatically detect it and offer to use that configuration. This is the recommended approach for existing simulators.
 
-### Option 2 & 3: Connect Editors
+### Option 3: From Existing Simulator
 
-Opens VS Code or Cursor connected directly to the VM via SSH:
+Browse and select from available simulators:
 
+![Simulator Selector](/images/existing_sim_list.png)
+
+Use the filter to search for specific simulators, then select one to see available artifacts (snapshots):
+
+![Artifact Selector](/images/artifact_selection_menu.png)
+
+Select an artifact to resume from an existing VM snapshot. This allows you to:
+- Resume development from a previous state
+- Test specific versions
+- Deploy production snapshots
+
+## Virtual Machine Management
+
+Once your VM is created, you'll see the Virtual Machine Management screen:
+
+![VM Management](/images/vm_control_panel.png)
+
+The management screen shows:
+
+### VM Information
+- **Job ID** - Unique identifier for the VM
+- **Dataset** - Which dataset is running
+- **URL** - Public URL to access your running simulator (https://sims.plato.so/...)
+- **Hub Repo** - Git repository URL
+
+### Connection Info
+- **SSH Command** - Direct SSH access to the VM
+  ```bash
+  ssh -F /home/ubuntu/.plato/ssh_11.conf sandbox-11
+  ```
+
+### Status
+Real-time status updates showing:
+- Docker authentication status
+- Service startup progress
+- Health check results
+
+## Available Actions
+
+### 1. Start Service
+
+Starts the service defined in your plato-config.yml:
+- Reads service configuration from `plato-config.yml`
+- Launches Docker Compose services
+- Waits for required containers to be healthy
+- Shows progress and health status
+
+**When to use:** After creating a blank VM or when you need to restart services.
+
+### 2. Start Plato Worker
+
+Starts the Plato worker process for mutation tracking:
+- Connects to database listeners defined in `plato-config.yml`
+- Monitors database changes in real-time
+- Enables state tracking for snapshots
+
+**When to use:** After services are running and healthy. Required before creating snapshots.
+
+### 3. Connect to Cursor/VSCode
+
+Opens your preferred code editor connected to the VM via SSH:
 - **Passwordless access** using SSH keys
-- **Direct file editing** in `/opt/plato`
+- **Direct file editing** in the VM filesystem
 - **Terminal access** within your editor
 - **Remote debugging** capabilities
 
-### Option 4: VM Information
+**Workflow:**
+1. Select your editor (Cursor or VSCode)
+2. Editor opens with remote connection
+3. Edit code directly on the VM
+4. Changes take effect immediately
 
-Shows details about your running VM:
-- VM UUID and status
-- SSH connection details  
-- Resource usage
-- Public URL (if applicable)
+### 4. Snapshot VM
 
-### Option 5: Cleanup
+Creates a snapshot of the current VM state:
+- Captures entire VM disk state
+- Includes all running services and data
+- Generates a unique artifact ID
+- Snapshot can be used to launch new VMs
 
-Safely stops and cleans up the VM and all resources.
+**Important:** Only snapshot after:
+- Services are running and healthy
+- Plato worker is running
+- You've tested the simulator works correctly
+
+Snapshots become available in the artifact selector for future use.
+
+### 5. Advanced Options
+
+Advanced VM management features:
+
+![Advanced VM Management](/images/advanced_menu.png)
+
+#### Authenticate ECR
+Authenticates Docker with AWS ECR on the VM:
+- Required for pulling private Docker images from ECR
+- Authentication valid for 12 hours
+- Automatically handles credentials
+
+**When to use:** If your Docker Compose file references ECR images.
+
+#### Open Proxytunnel
+Creates a local port forward to a VM port:
+- Forwards VM port to your localhost
+- Useful for debugging APIs locally
+- Access VM services from your development machine
+
+**Use cases:**
+- Database debugging (forward port 5432 to localhost)
+- API testing (forward app port to localhost)
+- Direct service access without public URL
+
+**Example:** Forward VM port 5432 to localhost:5432 for PostgreSQL access.
+
+### 6. Close VM
+
+Shuts down and cleans up the VM:
+- Stops all running services
+- Releases VM resources
+- Cleans up SSH configuration
+
+**Important:** Always close VMs when finished to avoid unnecessary resource usage.
 
 ## Development Workflow
 
-### Code-Test-Debug Cycle
+### Typical Development Session
 
-1. **Make changes** in your editor (VS Code/Cursor connected to VM)
-2. **Restart services** (option 1) to pick up changes
-3. **Test manually** or via automated tests
-4. **Debug issues** using SSH access and logs
+<Steps>
+  <Step title="Launch VM">
+    Create VM from plato-config.yml or existing artifact
+  </Step>
+
+  <Step title="Start Services">
+    Select "Start Service" to launch your application
+
+    Wait for all containers to be healthy
+  </Step>
+
+  <Step title="Start Worker">
+    Select "Start Plato Worker" to enable mutation tracking
+
+    Wait for worker to be healthy
+  </Step>
+
+  <Step title="Test & Develop">
+    - Access simulator at the provided URL
+    - SSH into VM for debugging
+    - Connect editor for code changes
+    - Use proxytunnel for local debugging
+  </Step>
+
+  <Step title="Create Snapshot">
+    Once everything works, select "Snapshot VM"
+
+    This creates an artifact you can resume from later
+  </Step>
+
+  <Step title="Close VM">
+    When finished, select "Close VM" to clean up
+  </Step>
+</Steps>
+
+### SSH Access
+
+Use the provided SSH command to access the VM:
+
+```bash
+# SSH into the VM
+ssh -F /home/ubuntu/.plato/ssh_11.conf sandbox-11
+
+# Common commands once connected
+docker ps                    # Check running containers
+docker compose logs -f       # View service logs
+systemctl status plato-*     # Check Plato services
+cd /opt/plato               # Navigate to simulator code
+```
 
 ### File Locations in VM
 
 <CardGroup cols={2}>
   <Card title="/opt/plato" icon="folder">
-    Your simulator code (synced from development branch)
+    Your simulator code (synced from repository)
   </Card>
-  
-  <Card title="/opt/internal" icon="gear">
-    Generated configuration files (config.yml, env.py, etc.)
+
+  <Card title="/home/plato" icon="folder">
+    Plato data (db_signals, logs, etc.)
   </Card>
 </CardGroup>
 
-### Viewing Logs
-
-Check service status and logs:
-
-```bash
-# SSH into your VM first (option 2 or 3)
-docker compose ps
-systemctl status custom-sim-simulator
-journalctl -u custom-sim-simulator -f
-```
-
 ## Configuration Examples
 
-### Custom Compute Resources
+### Example Configuration
+
+Here's a complete example of a `plato-config.yml` file with detailed comments:
 
 ```yaml plato-config.yml
-compute:
-  cpus: 2              # More CPU power
-  memory: 4096         # 4GB memory  
-  disk: 20480          # 20GB disk
-  app_port: 3000       # Custom port
-  plato_messaging_port: 8000
+service: baserow  # Service name for this simulator
+
+datasets:
+  base: &base  # Anchor for sharing config across datasets
+    compute: &base_compute
+      cpus: 1                    # Number of vCPUs (1-8)
+      memory: 3072               # RAM in MB (512-16384)
+      disk: 10240                # Disk in MB (1024-102400)
+      app_port: 80               # Port your app listens on
+      plato_messaging_port: 7000 # Port for Plato worker (keep unless conflicting with an app port)
+
+    metadata: &base_metadata
+      name: BaseRow
+      description: BaseRow Simulator
+      source_code_url: unknown
+      start_url: https://sims.plato.so
+      license: GPL-3.0
+      variables:                 # Login credentials for the simulator
+        - name: username
+          value: admin
+        - name: password
+          value: admin123
+      flows_path: base/flows.yaml
+
+    services: &base_services
+      main_app:                  # Service identifier (choose any name)
+        type: docker-compose     # Only docker-compose supported
+        file: base/docker-compose.yml
+        healthy_wait_timeout: 600  # Seconds to wait for health checks
+        required_healthy_containers:
+          - backend              # Must match container name in compose file
+          # Add multiple containers if needed:
+          # - frontend
+          # - worker
+
+    listeners: &base_listeners
+      db:                        # Listener identifier (choose any name)
+        type: db                 # Type: db, file (more types coming)
+        db_type: postgresql      # postgresql, mysql, or sqlite
+        db_host: 127.0.0.1       # Use 127.0.0.1 or container name
+        db_port: 5432
+        db_user: baserow
+        db_password: baserow
+        db_database: baserow
+        volumes:                 # Mount volumes for signal exchange
+          - /home/plato/db_signals:/tmp/postgres-signals
+          # Additional volume examples:
+          # - /home/plato/logs:/var/log/app       # Share logs
+          # - /home/plato/config:/app/config:ro   # Read-only config
+          # - /home/plato/uploads:/app/uploads    # Shared uploads
 ```
 
-### Multiple Datasets
+### Multiple Datasets with YAML Anchors
+
+Use YAML anchors (`&`, `*`, `<<:`) to share configuration across datasets:
 
 ```yaml plato-config.yml
+service: myapp  # Service name for this simulator
+
 datasets:
-  base:
-    entrypoint:
-      file: "datasets/base/docker-compose.yml"
-      required_services: ["web", "db"]  # Only wait for specific services
-    mutation_listeners:
-      web-db:
-        type: "db"
-        db_type: "postgresql"
-        db_host: "localhost"
-        db_port: 5432
-        # ... database config
-        
-  test-data:
-    entrypoint:
-      file: "datasets/test/docker-compose.yml" 
-      healthy_wait_timeout: 600  # Longer timeout
-    mutation_listeners:
-      # ... different test database config
+  base: &base                    # Define base config with anchor
+    compute: &base_compute
+      cpus: 1                    # Number of vCPUs
+      memory: 3072
+      disk: 10240
+      app_port: 80
+      plato_messaging_port: 7000 # Port for Plato worker (keep unless conflicting with an app port)
+    metadata: &base_metadata
+      name: MyApp Base
+      start_url: https://sims.plato.so
+      variables:
+        - name: username
+          value: user
+        - name: password
+          value: pass
+      # ... other metadata
+    services: &base_services
+      # ... services config
+    listeners: &base_listeners
+      # ... listeners config
+
+  test:
+    <<: *base                    # Merge all base config
+    compute:
+      <<: *base_compute          # Merge base compute
+      cpus: 2                    # Override: more vCPUs for test
+      memory: 4096               # Override: more memory for test
+    metadata:
+      <<: *base_metadata
+      name: MyApp Test           # Override: different name
+      variables:                 # Override: test-specific credentials
+        - name: username
+          value: test_user
+        - name: password
+          value: test_pass
+        - name: DEBUG
+          value: "true"
 ```
 
 ### Using Different Datasets
 
-```bash
-plato hub sandbox --dataset test-data
-```
+The CLI will prompt you to select a dataset if multiple are defined in plato-config.yml.
 
 ## Troubleshooting
 
 <AccordionGroup>
   <Accordion title="VM fails to start">
     Check your `plato-config.yml` for valid resource limits:
-    - CPUs: 1-8
-    - Memory: 512-16384 MB  
+    - vCPUs: 1-8
+    - Memory: 512-16384 MB
     - Disk: 1024-102400 MB
+
+    Ensure your API key is valid in the Configuration menu.
   </Accordion>
 
   <Accordion title="Services won't start">
     - Check your `docker-compose.yml` syntax
     - Verify image names and tags are accessible
     - Review service dependencies and health checks
+    - Check Docker logs via SSH
+    - Authenticate with ECR if using private images (Advanced menu)
   </Accordion>
 
   <Accordion title="SSH connection fails">
     - Wait a moment for chisel tunnel to establish
-    - Try the SSH command manually: `ssh plato-sandbox-abc123`
-    - Check if SSH key was generated properly
+    - Try the SSH command manually from the CLI output
+    - Check if SSH key was generated properly in `~/.plato/`
   </Accordion>
 
   <Accordion title="Editor won't connect">
+    - Ensure you have the `code` command installed and bound to VSCode or Cursor
     - Install VS Code Remote-SSH extension
-    - Use F1 → "Remote-SSH: Connect to Host" → select your sandbox
+    - Use the SSH config path shown in the CLI
     - Check that the SSH tunnel is active
+    - Try connecting manually with the SSH command first
+  </Accordion>
+
+  <Accordion title="Snapshot fails">
+    - Ensure services are running and healthy
+    - Verify Plato worker is running
+    - Check you have sufficient disk space
+    - Review service logs for errors
+  </Accordion>
+
+  <Accordion title="Proxytunnel connection issues">
+    - Ensure the VM port is accessible
+    - Check no local service is using the same port
+    - Verify the service is running on that port in the VM
   </Accordion>
 </AccordionGroup>
 
 <Warning>
-  Remember to stop your sandbox (option 5) when finished to avoid leaving VMs running unnecessarily.
+  Remember to close your VM when finished to avoid leaving resources running unnecessarily. Use the "Close VM" action from the management menu.
 </Warning>
+
+## Next Steps
+
+- **[Getting Started](/hub/getting-started)** - Learn the basics of Plato Hub
+- **[Quickstart](/hub/quickstart)** - Quick start guide with examples
+- **[Simulator Management](/hub/simulator-management)** - Clone and manage simulators

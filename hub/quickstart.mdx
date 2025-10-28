@@ -7,6 +7,23 @@ description: 'Your first steps with Plato Hub - clone a simulator and start deve
 
 Get up and running with Plato Hub in minutes. Create and deploy your first simulator with just a few commands.
 
+## Installation
+
+First, install the Plato SDK for your platform:
+
+```bash
+uv init
+
+# macOS Silicon (M1/M2/M3)
+uv add plato-sdk==1.0.95.dev20251027235103
+
+# macOS Intel
+uv add plato-sdk==1.0.95.dev20251027235111
+
+# Linux AMD64
+uv add plato-sdk==1.0.95.dev20251027235232
+```
+
 ## Your First Simulator
 
 <Steps>
@@ -14,131 +31,233 @@ Get up and running with Plato Hub in minutes. Create and deploy your first simul
     Clone an existing simulator:
 
     ```bash
-    plato hub clone custom-sim
+    uv run plato hub clone custom-sim
     cd custom-sim
     ```
 
     This downloads the simulator code and sets up your local development.
-  </Step>
 
-  <Step title="Create Configuration">
-    Create your `plato-config.yml` file:
-
-    ```yaml plato-config.yml
-    compute:
-      cpus: 1                    # Number of CPU cores for the VM
-      memory: 2048               # Memory in MB for the VM
-      disk: 10240                # Disk space in MB for the VM
-      app_port: 8080             # Port your main application runs on
-      plato_messaging_port: 7000 # Port for Plato worker communication
-
-    datasets:
-      base:                      # Dataset name - you can have multiple
-        entrypoint:
-          type: "docker"         # How to start services (only "docker" supported)
-          file: "docker-compose.yml"        # Path to your docker compose file
-          healthy_wait_timeout: 300         # Seconds to wait for services to start
-          required_services: ["*"]          # Services to wait for ("*" = all)
-        mutation_listeners:      # Database monitoring configuration
-          db:                    # Listener name (can be anything)
-            type: "db"           # Type of listener (only "db" supported)
-            db_type: "postgresql" # Database type
-            db_host: "localhost" # Database host
-            db_port: 5432        # Database port
-            db_user: "app_user"  # Database user
-            db_password: "password"          # Database password
-            db_database: "app_db"            # Database name
-    ```
-
-    This configuration defines your VM resources and how your simulator runs.
-  </Step>
-
-  <Step title="Deploy">
-    Push your changes to deploy:
+    You can explore available hub commands:
 
     ```bash
-    plato hub git push
+    uv run plato hub
+    ```
+  </Step>
+
+  <Step title="Check Configuration">
+    Look at the simulator configuration in `plato-config.yml`:
+
+    ```yaml plato-config.yml
+    service: baserow  # Service name for this simulator
+
+    datasets:
+      base: &base  # Define 'base' dataset with anchor for reuse
+        compute: &base_compute  # VM resource allocation
+          cpus: 1                    # Number of vCPUs (1-8)
+          memory: 3072               # RAM in MB (512-16384)
+          disk: 10240                # Disk space in MB (1024-102400)
+          app_port: 80               # Port your application listens on
+          plato_messaging_port: 7000 # Port for Plato worker (keep unless conflicting with an app port)
+
+        metadata: &base_metadata  # Simulator metadata
+          name: BaseRow           # Display name
+          description: BaseRow    # Brief description
+          source_code_url: unknown # Link to source repository
+          start_url: https://sims.plato.so  # URL to access the app
+          license: GPL-3.0        # Software license
+          variables:              # Login credentials for the simulator
+            - name: username
+              value: admin
+            - name: password
+              value: admin123
+          flows_path: base/flows.yaml  # Path to flow definitions
+
+        services: &base_services  # Service configuration
+          main_app:               # Service name (can be any identifier)
+            type: docker-compose  # Service type (docker-compose only)
+            file: base/docker-compose.yml  # Path to compose file
+            healthy_wait_timeout: 600      # Seconds to wait for health
+            required_healthy_containers:   # Containers that must be healthy
+              - backend            # Container name from docker-compose
+
+        listeners: &base_listeners  # Database mutation listeners
+          db:                    # Listener name (can be any identifier)
+            type: db             # Listener type (db, file, etc.)
+            db_type: postgresql  # Database type (postgresql, mysql, sqlite)
+            db_host: 127.0.0.1   # Database host
+            db_port: 5432        # Database port
+            db_user: baserow     # Database username
+            db_password: baserow # Database password
+            db_database: baserow # Database name
+            volumes:             # Volume mounts for signal files
+              - /home/plato/db_signals:/tmp/postgres-signals
+              # Format: <vm_path>:<container_path>
+              # Multiple volumes can be specified
     ```
 
-    That's it! Your simulator is now deployed and ready to use.
-    
-    **Your deployed simulator is accessible as:**
-    - **Service:** `custom-sim`
-    - **Version:** `{git-commit-hash}` (e.g., `a1b2c3d`)
-    - **Tag:** `{git-branch-name}` (e.g., `main`, `feature-auth`)
+    This configuration defines your VM resources, services, and how your simulator runs.
+  </Step>
+
+  <Step title="Start Development">
+    You can now use the Python SDK to create sandboxes and test your simulator programmatically.
+
+    See the example start script below for how to create and manage sandboxes with the SDK.
   </Step>
 </Steps>
 
 ## Project Structure
 
-Your simulator project needs just one required file:
+Your simulator project structure:
 
 ```
 custom-sim/
-  plato-config.yml           # Required: VM and service configuration
-  
-  # Your app files - organize however you like
-  src/
-  app/
-  config/
-  docker-compose.yml
-  ...
+├── plato-config.yml          # Required: VM and service configuration
+├── base/
+│   ├── docker-compose.yml    # Main application services
+│   └── flows.yaml            # Flow definitions
+└── .plato-hub.json          # Hub configuration (auto-generated)
 ```
 
-**`plato-config.yml`** - The only required file. Defines your VM resources, datasets, and how services start.
+## Environment Setup
+
+Before running the start script, create a `.env` file with your credentials:
+
+```bash .env
+PLATO_API_KEY=your-api-key-here
+PLATO_BASE_URL=https://plato.so/api
+```
+
+Get your API key from [plato.so/settings](https://plato.so/settings).
+
+## Example Start Script
+
+Here's how to programmatically create and manage sandboxes using the Python SDK:
+
+```python
+import os
+from plato.sandbox_sdk import PlatoSandboxClient
+from plato.models.sandbox import CreateSnapshotRequest, PlatoConfig
+import yaml
+
+# Initialize client with your API key
+client = PlatoSandboxClient(api_key=os.environ['PLATO_API_KEY'])
+
+# Load configuration
+dataset = 'base'
+sim_name = 'your-sim-name'  # ask rob/pranav for sim name
+
+with open(f"{sim_name}/plato-config.yml", "r") as f:
+    cfg = PlatoConfig.model_validate(yaml.safe_load(f))
+
+# Create sandbox and wait for it to be ready
+sandbox = client.create_sandbox(config=cfg.datasets[dataset], wait=True, timeout=900)
+
+# Set up SSH access
+ssh_response = client.setup_ssh(sandbox, cfg.datasets[dataset], dataset=dataset)
+
+# Get Gitea credentials for cloning
+creds = client.get_gitea_credentials()
+clone_url = f"https://{creds['username']}:{creds['password']}@hub.plato.so/{creds['org_name']}/{sim_name}"
+
+# SSH into the VM: ssh -F /Users/pranavputta/.plato/ssh_45.conf sandbox-45
+# Clone repository onto VM: git clone {clone_url}
+
+# Start the service (wait for containers to be healthy)
+start_service = client.start_service(
+    public_id=sandbox.public_id,
+    dataset=dataset,
+    dataset_config=cfg.datasets[dataset]
+)
+# Wait for service to start...
+
+# Start the Plato worker (for mutation tracking)
+start_worker = client.start_worker(
+    public_id=sandbox.public_id,
+    dataset=dataset,
+    dataset_config=cfg.datasets[dataset]
+)
+# Wait for worker to be healthy...
+
+# Once services are running and tested, create a snapshot
+response = client.create_snapshot(
+    public_id=sandbox.public_id,
+    request=CreateSnapshotRequest(service=sim_name, dataset=dataset)
+)
+```
 
 ## Configuration Reference
 
-### Compute Section
+### Key Sections
 
-The `compute` section defines the VM resources for your simulator:
+<CardGroup cols={2}>
+  <Card title="compute" icon="server">
+    Defines VM resources (CPUs, memory, disk, ports)
+  </Card>
 
-- **`cpus`** (1-8) - Number of CPU cores allocated to the VM
-- **`memory`** (512-16384 MB) - RAM allocated to the VM  
-- **`disk`** (1024-102400 MB) - Disk space for the VM
-- **`app_port`** (1024-65535) - Port your main application listens on
-- **`plato_messaging_port`** (1024-65535) - Port for Plato worker communication
+  <Card title="metadata" icon="info">
+    Simulator information (name, description, license, etc.)
+  </Card>
 
-### Datasets Section
+  <Card title="services" icon="docker">
+    Docker Compose service definitions and health checks
+  </Card>
 
-The `datasets` section defines different environments (base, test, production-copy, etc.):
+  <Card title="listeners" icon="database">
+    Database monitoring configuration for tracking mutations
+  </Card>
+</CardGroup>
 
-#### Entrypoint Configuration
+### Volume Mounting
 
-- **`type`** - Always "docker" (only supported type)
-- **`file`** - Path to your docker-compose.yml file
-- **`healthy_wait_timeout`** (30-1800 seconds) - How long to wait for services to start
-- **`required_services`** - Array of service names to wait for, or ["*"] for all services
+Volumes allow you to share data between the VM and containers. Common use cases:
 
-#### Mutation Listeners
+```yaml
+listeners:
+  db:
+    # ... other db config
+    volumes:
+      # Share database signal files
+      - /home/plato/db_signals:/tmp/postgres-signals
 
-Database monitoring configuration for tracking state changes:
+      # Mount config files
+      - /home/plato/config:/app/config:ro  # :ro for read-only
 
-- **`type`** - Always "db" (only supported type)
-- **`db_type`** - Database type: "postgresql", "mysql", or "sqlite"  
-- **`db_host`** - Database hostname or IP
-- **`db_port`** - Database port number
-- **`db_user`** - Database username
-- **`db_password`** - Database password
-- **`db_database`** - Database name
+      # Share data directories
+      - /home/plato/data:/var/lib/data
+```
 
-### Multiple Datasets Example
+**Format:** `<vm_path>:<container_path>[:mode]`
+- `vm_path`: Path on the VM filesystem
+- `container_path`: Path inside the container
+- `mode` (optional): `ro` for read-only, `rw` for read-write (default)
+
+### Dataset Configuration
+
+Each dataset can have its own configuration. Use YAML anchors (`&` and `*`) to share configuration across datasets:
 
 ```yaml
 datasets:
-  base:
-    entrypoint:
-      file: "docker-compose.yml"
-      required_services: ["web", "db"]  # Only wait for specific services
-    mutation_listeners:
-      main-db: { ... }
-      
-  test-data:
-    entrypoint:
-      file: "test/docker-compose.yml"
-      healthy_wait_timeout: 600  # Longer timeout for test environment
-    mutation_listeners:
-      test-db: { ... }
+  base: &base
+    compute: &base_compute
+      cpus: 1
+      memory: 3072
+      disk: 10240
+      # ... more config
+
+  test:
+    <<: *base  # Inherits all from base
+    compute:
+      <<: *base_compute
+      memory: 4096  # Override specific values
+    metadata:
+      name: BaseRow Test  # Override test dataset name
+
+  production:
+    <<: *base
+    compute:
+      <<: *base_compute
+      cpus: 2          # More CPU for production
+      memory: 8192     # More memory for production
 ```
 
 ## Next Steps

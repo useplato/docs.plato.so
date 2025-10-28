@@ -9,9 +9,25 @@ The Plato CLI provides powerful tools for managing simulators, creating developm
 
 ## Quick Installation
 
-Install Plato CLI globally using uv:
+Install Plato SDK for your platform:
 
 ```bash
+uv init
+
+# macOS Silicon (M1/M2/M3)
+uv add plato-sdk==1.0.95.dev20251027235103
+
+# macOS Intel
+uv add plato-sdk==1.0.95.dev20251027235111
+
+# Linux AMD64
+uv add plato-sdk==1.0.95.dev20251027235232
+```
+
+Alternatively, install globally:
+
+```bash
+# For global installation
 uv tool install plato-sdk
 ```
 
@@ -23,6 +39,7 @@ Create a `.env` file:
 
 ```bash .env
 PLATO_API_KEY=your-api-key-here
+PLATO_BASE_URL=https://plato.so/api
 ```
 
 ## Verify Setup
@@ -30,10 +47,14 @@ PLATO_API_KEY=your-api-key-here
 Test your connection:
 
 ```bash
-plato list-simulators
+# If using project-level installation
+uv run plato hub
+
+# If using global installation
+plato hub
 ```
 
-You should see a list of available simulators.
+You should see the Plato Hub CLI interface.
 
 ## Next Steps
 

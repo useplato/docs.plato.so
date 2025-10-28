@@ -1,202 +1,406 @@
 ---
-title: 'Simulator Management'
-description: 'Commands for creating, cloning, and managing Plato simulators'
+title: 'Managing Simulators'
+description: 'Clone and manage simulators with Plato Hub'
 ---
 
-# Simulator Management
+# Managing Simulators
 
-Plato Hub provides powerful commands for managing simulators throughout their lifecycle - from creation to deployment.
+Learn how to clone simulators, manage configurations, and work with the Plato Hub ecosystem.
 
-## Creating New Simulators
+## Cloning Simulators
 
-### Initialize a New Simulator
+### Using the CLI
 
-Create a brand new simulator with repository setup:
+The easiest way to clone a simulator is through the Plato Hub CLI:
 
 ```bash
-plato hub init <simulator-name> [options]
+uv run plato hub clone {sim-name}
 ```
-
-<ParamField path="simulator-name" type="string" required>
-  Name of the new simulator (e.g., `myapp`, `crm-system`)
-</ParamField>
-
-<ParamField path="--description" type="string">
-  Description for the new simulator
-</ParamField>
-
-<ParamField path="--sim-type" type="string" default="docker_app">
-  Type of simulator to create
-</ParamField>
-
-<ParamField path="--directory" type="string">
-  Directory to create and clone into (defaults to simulator name)
-</ParamField>
 
 **Example:**
 ```bash
-plato hub init custom-sim --description "Custom CRM simulator" --directory ./my-crm-app
+uv run plato hub clone espocrm
+cd espocrm
 ```
 
 This command:
-1. Creates a new simulator in the Plato registry
-2. Sets up a Git repository for the simulator  
-3. Clones the repository to your local machine
-4. Configures the local directory for development
+1. Clones the simulator repository from Plato Hub
+2. Sets up `.plato-hub.json` configuration
+3. Configures git remotes for the simulator
 
-## Working with Existing Simulators
+### Browsing Available Simulators
 
-### Clone an Existing Simulator
-
-Download and set up a local copy of an existing simulator:
+Launch the interactive CLI to browse simulators:
 
 ```bash
-plato hub clone <simulator-name> [--directory <path>]
+uv run plato hub
 ```
 
-**Example:**
-```bash
-plato hub clone custom-sim
-cd custom-sim
+Select "Launch Environment", then choose "From Existing Simulator" to see the simulator browser:
+
+![Simulator Browser](/images/existing_sim_list.png)
+
+Features:
+- **Filter** - Search for simulators by name
+- **Arrow keys** - Navigate the list
+- **Enter** - Select a simulator to view artifacts
+
+After selecting a simulator, you can:
+- View all available snapshots (artifacts)
+- See version history and creation dates
+- Launch a VM from any snapshot
+
+![Artifact Selector](/images/artifact_selection_menu.png)
+
+## Simulator Structure
+
+A typical Plato simulator has this structure:
+
+```
+simulator-name/
+├── plato-config.yml          # Main configuration file
+├── base/                     # Base dataset directory
+│   ├── docker-compose.yml    # Docker services definition
+│   └── flows.yaml            # Action flows (optional)
+├── .plato-hub.json           # Hub metadata (auto-generated)
+└── README.md                 # Simulator documentation
 ```
 
-### Link Local Directory 
-
-Link an existing directory to a simulator (useful for monorepos):
-
-```bash
-plato hub link <simulator-name> [directory]
-```
-
-This creates a `.plato-hub.json` configuration without cloning - perfect for integrating simulators into existing codebases.
-
-## Git Operations
-
-Plato Hub provides enhanced git commands that understand simulator repositories:
-
-### Authenticate with Hub
-
-Set up authentication for git operations:
-
-```bash
-plato hub login
-```
-
-This caches your credentials securely for seamless git operations.
-
-### Push Changes
-
-Push your local changes to the simulator repository:
-
-```bash
-plato hub git push [branch-name]
-```
-
-<Tip>
-  Hub git commands work in "isolation" - they sync only the simulator files without affecting your monorepo structure.
-</Tip>
-
-### Pull Updates
-
-Pull updates from the simulator repository:
-
-```bash
-plato hub git pull
-```
-
-### Check Status
-
-See the difference between your local simulator and the remote:
-
-```bash
-plato hub git status
-plato hub git diff
-```
-
-## Listing Simulators
-
-### Available Simulators
-
-See all simulators you have access to:
-
-```bash
-plato list-simulators
-```
-
-This shows:
-- Simulator names and descriptions
-- Enabled/disabled status  
-- Access permissions
-
-## Configuration Management
-
-### Default Configuration
-
-When you clone or create a simulator, Plato automatically creates a `plato-config.yml` file:
-
-```yaml
-compute:
-  cpus: 1
-  memory: 2048
-  disk: 10240
-  app_port: 8080
-  plato_messaging_port: 7000
-
-datasets:
-  base:
-    entrypoint:
-      type: "docker"
-      file: "datasets/base/docker-compose.yml"
-      healthy_wait_timeout: 300
-      required_services: ["*"]
-    mutation_listeners:
-      container-1:
-        type: "db"
-        db_type: "postgresql" 
-        db_host: "localhost"
-        db_port: 5432
-        db_user: "app_user"
-        db_password: "${DB_PASSWORD}"
-        db_database: "app_db"
-```
-
-### Configuration Options
+### Key Files
 
 <CardGroup cols={2}>
-  <Card title="Compute Resources" icon="server">
-    Configure CPU, memory, and disk for your VM
+  <Card title="plato-config.yml" icon="gear">
+    **Required** - Defines VM resources, services, datasets, and database listeners
   </Card>
-  
-  <Card title="Datasets" icon="database">
-    Define different environments (base, test, prod-copy)
+
+  <Card title="docker-compose.yml" icon="docker">
+    **Required** - Defines your application services (web, database, workers, etc.)
   </Card>
-  
-  <Card title="Entrypoints" icon="play">
-    Specify how your simulator services start up
+
+  <Card title="flows.yaml" icon="workflow">
+    **Optional** - Defines automated action flows for the simulator
   </Card>
-  
-  <Card title="Mutation Listeners" icon="ear-listen">
-    Monitor database changes for state tracking
+
+  <Card title=".plato-hub.json" icon="link">
+    **Auto-generated** - Links local directory to Hub repository
   </Card>
 </CardGroup>
 
+## Configuration File
+
+The `plato-config.yml` file is the heart of your simulator configuration.
+
+### Complete Example
+
+```yaml plato-config.yml
+service: espocrm  # Service name for this simulator
+
+datasets:
+  base: &base  # YAML anchor for reusing configuration
+    compute: &base_compute
+      cpus: 1                    # Number of vCPUs (1-8)
+      memory: 3072               # RAM in MB (512-16384)
+      disk: 10240                # Disk in MB (1024-102400)
+      app_port: 80               # Port your application listens on
+      plato_messaging_port: 7000 # Port for Plato worker (keep unless conflicting with an app port)
+
+    metadata: &base_metadata
+      name: EspoCRM
+      description: EspoCRM Customer Relationship Management
+      source_code_url: https://github.com/espocrm/espocrm
+      start_url: https://sims.plato.so  # Public URL for simulator
+      license: GPL-3.0
+      variables:                  # Login credentials
+        - name: username
+          value: admin
+        - name: password
+          value: password
+      flows_path: base/flows.yaml
+
+    services: &base_services
+      main_app:                   # Service identifier
+        type: docker-compose
+        file: base/docker-compose.yml
+        healthy_wait_timeout: 600
+        required_healthy_containers:
+          - espocrm               # Container names from compose file
+          - db
+
+    listeners: &base_listeners
+      db:                         # Listener identifier
+        type: db
+        db_type: postgresql
+        db_host: 127.0.0.1
+        db_port: 5432
+        db_user: espocrm
+        db_password: espocrm
+        db_database: espocrm
+        volumes:
+          - /home/plato/db_signals:/tmp/postgres-signals
+```
+
+### Configuration Sections
+
+#### Service
+
+```yaml
+service: myapp  # Service name used for snapshots and deployment
+```
+
+The service name identifies your simulator across Plato Hub.
+
+#### Compute Resources
+
+```yaml
+compute:
+  cpus: 1                    # Number of vCPUs (1-8)
+  memory: 3072               # RAM in MB (512-16384)
+  disk: 10240                # Disk space in MB (1024-102400)
+  app_port: 80               # Application port
+  plato_messaging_port: 7000 # Port for Plato worker (keep unless conflicting with an app port)
+```
+
+#### Metadata
+
+```yaml
+metadata:
+  name: My Simulator           # Display name
+  description: Description     # Brief description
+  source_code_url: https://... # Repository URL
+  start_url: https://sims.plato.so  # Access URL
+  license: MIT                 # License type
+  variables:                   # Login credentials
+    - name: username
+      value: admin
+    - name: password
+      value: pass123
+  flows_path: base/flows.yaml  # Path to flows file
+```
+
+#### Services
+
+```yaml
+services:
+  main_app:                      # Service identifier
+    type: docker-compose
+    file: base/docker-compose.yml
+    healthy_wait_timeout: 600    # Seconds to wait for health
+    required_healthy_containers: # Containers that must be healthy
+      - web
+      - db
+      - worker
+```
+
+#### Listeners
+
+```yaml
+listeners:
+  db:                           # Listener identifier
+    type: db                    # Listener type
+    db_type: postgresql         # Database type
+    db_host: 127.0.0.1          # Database host
+    db_port: 5432               # Database port
+    db_user: appuser            # Database user
+    db_password: password       # Database password
+    db_database: appdb          # Database name
+    volumes:                    # Volume mounts
+      - /home/plato/db_signals:/tmp/postgres-signals
+```
+
+### Multiple Datasets
+
+Define multiple datasets for different environments:
+
+```yaml
+service: myapp
+
+datasets:
+  base: &base
+    compute: &base_compute
+      cpus: 1
+      memory: 2048
+    metadata: &base_metadata
+      name: MyApp Base
+      start_url: https://sims.plato.so
+      variables:
+        - name: username
+          value: user
+        - name: password
+          value: pass
+    # ... other config
+
+  test:
+    <<: *base                # Inherit all from base
+    compute:
+      <<: *base_compute
+      cpus: 2                # Override for test
+      memory: 4096
+    metadata:
+      <<: *base_metadata
+      name: MyApp Test
+      variables:
+        - name: username
+          value: test_user
+        - name: password
+          value: test_pass
+```
+
+## Working with Snapshots
+
+Snapshots (also called artifacts) are saved VM states that can be reused.
+
+### Creating Snapshots
+
+Create a snapshot through the Hub CLI after starting services and worker:
+
+1. Launch VM and start services
+2. Start Plato worker
+3. Test the simulator
+4. Select "Snapshot VM" from the actions menu
+
+The snapshot captures:
+- Entire VM disk state
+- All running services
+- Database data
+- Application state
+
+### Using Snapshots
+
+Launch a VM from an existing snapshot:
+
+1. Open Hub CLI: `uv run plato hub`
+2. Select "Launch Environment"
+3. Choose "From Existing Simulator"
+4. Browse simulators and select one
+5. Choose an artifact/snapshot
+6. VM launches with saved state
+
+This allows you to:
+- Resume development from previous state
+- Deploy specific versions
+- Test different configurations
+- Share working environments
+
+## Git Integration
+
+Plato Hub includes built-in git integration for simulator repositories.
+
+### Cloning with Credentials
+
+The Hub CLI handles authentication automatically:
+
+```bash
+uv run plato hub clone simulator-name
+```
+
+No manual credential setup required!
+
+### Manual Cloning
+
+If you need to clone manually, use the SDK to get credentials:
+
+```python
+from plato.sandbox_sdk import PlatoSandboxClient
+import os
+
+client = PlatoSandboxClient(api_key=os.environ['PLATO_API_KEY'])
+creds = client.get_gitea_credentials()
+
+clone_url = f"https://{creds['username']}:{creds['password']}@hub.plato.so/{creds['org_name']}/simulator-name"
+```
+
+Then clone normally:
+
+```bash
+git clone {clone_url}
+```
+
+### Repository Structure
+
+Hub repositories follow standard git practices:
+
+- **main** branch - Production-ready code
+- **Feature branches** - Development work
+- **Tags** - Version releases
+
 ## Best Practices
 
-<Tip>
-  **Monorepo Integration:** Use `plato hub link` instead of `clone` when working with monorepos to avoid nested git repositories.
-</Tip>
+### Configuration Management
 
-<Tip>
-  **Branch Strategy:** Use feature branches for development, push to `main` for production snapshots.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Use YAML Anchors" icon="link">
+    Share configuration across datasets with `&` and `*` syntax
+  </Card>
 
-<Warning>
-  Always run `plato hub login` before git operations to ensure proper authentication.
-</Warning>
+  <Card title="Environment Variables" icon="key">
+    Use `${VAR}` syntax for sensitive data like passwords
+  </Card>
+
+  <Card title="Login Credentials" icon="user">
+    Always define username/password in variables section
+  </Card>
+
+  <Card title="Health Checks" icon="heart-pulse">
+    Configure proper health checks in docker-compose.yml
+  </Card>
+</CardGroup>
+
+### Development Workflow
+
+1. **Clone simulator** from Hub
+2. **Test locally** with Hub CLI
+3. **Make changes** and commit to feature branch
+4. **Create snapshot** when working
+5. **Share snapshot ID** with team
+6. **Merge to main** when ready
+
+### Resource Allocation
+
+Choose resources based on your simulator needs:
+
+| Simulator Type | vCPUs | Memory (MB) | Disk (MB) |
+|----------------|-------|-------------|-----------|
+| Simple web app | 1     | 1024-2048   | 10240     |
+| Database app   | 1-2   | 2048-4096   | 20480     |
+| Complex system | 2-4   | 4096-8192   | 51200     |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Clone fails with authentication error">
+    1. Check your API key in `.env` file
+    2. Verify API key at plato.so/settings
+    3. Ensure `PLATO_BASE_URL=https://plato.so/api` is set
+  </Accordion>
+
+  <Accordion title="Config file not recognized">
+    - File must be named exactly `plato-config.yml`
+    - Check YAML syntax with a validator
+    - Ensure proper indentation (spaces, not tabs)
+    - Verify `service` field is at root level
+  </Accordion>
+
+  <Accordion title="502 error when accessing simulator from browser">
+    - Verify that the `app_port` in plato-config.yml matches the frontend app port from your docker-compose.yml
+    - Ensure the app is running inside the VM
+    - SSH into the VM and test with curl: `curl localhost:<app_port>`
+    - Check Docker container logs: `docker compose logs -f`
+  </Accordion>
+
+  <Accordion title="Can't find created snapshot">
+    - Snapshots may take a few minutes to process
+    - Refresh the artifact list
+    - Check the snapshot completed successfully
+    - Verify you're looking at the correct simulator
+  </Accordion>
+</AccordionGroup>
 
 ## Next Steps
 
-Now that you understand simulator management, learn about:
+- **[Plato Hub CLI](/hub/development-sandbox)** - Learn the full Hub CLI workflow
+- **[Getting Started](/hub/getting-started)** - Basic concepts and setup
+- **[Quickstart](/hub/quickstart)** - Quick start guide with examples
 
-- **[Development Sandbox](/hub/development-sandbox)** - Test your changes in isolated environments
-- **[Deployment Workflow](/hub/deployment-workflow)** - Publish and version your simulators
+<Tip>
+  Use the Hub CLI interactive browser to explore available simulators and their snapshots. It's the easiest way to discover what's available!
+</Tip>
