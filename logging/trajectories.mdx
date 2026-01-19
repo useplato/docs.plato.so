@@ -1,0 +1,213 @@
+---
+title: 'Trajectories'
+description: 'ATIF format for agent execution traces'
+---
+
+# Trajectories
+
+Trajectories capture the full execution trace of an agent using the ATIF (Agent Trajectory Interchange Format) schema.
+
+## ATIF Schema
+
+```json
+{
+  "schema_version": "1.0.0",
+  "agent": {
+    "name": "my-agent",
+    "version": "1.0.0",
+    "extra": {}
+  },
+  "steps": [
+    {
+      "step_id": 1,
+      "model_response": "I'll start by reading the file.",
+      "tool_calls": [
+        {
+          "tool_id": "call_1",
+          "tool_name": "read_file",
+          "tool_input": {"path": "/app/main.py"}
+        }
+      ],
+      "observations": [
+        {
+          "observation_id": "obs_1",
+          "tool_id": "call_1",
+          "observation": {
+            "content": "def main():\n    pass",
+            "error": null
+          }
+        }
+      ],
+      "metrics": {
+        "input_tokens": 150,
+        "output_tokens": 50
+      }
+    }
+  ],
+  "final_metrics": {
+    "total_steps": 5,
+    "total_input_tokens": 1500,
+    "total_output_tokens": 500
+  }
+}
+```
+
+## Python Models
+
+```python
+from plato.agents import (
+    Trajectory,
+    Step,
+    Agent,
+    ToolCall,
+    Observation,
+    ObservationResult,
+    Metrics,
+    FinalMetrics,
+)
+
+# Build a trajectory
+trajectory = Trajectory(
+    agent=Agent(
+        name="my-agent",
+        version="1.0.0",
+    ),
+    steps=[
+        Step(
+            step_id=1,
+            model_response="I'll list the files.",
+            tool_calls=[
+                ToolCall(
+                    tool_id="call_1",
+                    tool_name="bash",
+                    tool_input={"command": "ls -la"},
+                )
+            ],
+            observations=[
+                Observation(
+                    observation_id="obs_1",
+                    tool_id="call_1",
+                    observation=ObservationResult(
+                        content="file1.py\nfile2.py",
+                    ),
+                )
+            ],
+            metrics=Metrics(
+                input_tokens=100,
+                output_tokens=25,
+            ),
+        ),
+    ],
+    final_metrics=FinalMetrics(
+        total_steps=1,
+        total_input_tokens=100,
+        total_output_tokens=25,
+    ),
+)
+
+# Write to file
+await agent.write_trajectory(trajectory.model_dump())
+```
+
+## Components
+
+### Agent
+
+```python
+Agent(
+    name="my-agent",
+    version="1.0.0",
+    extra={"model": "claude-sonnet-4"},  # Optional
+)
+```
+
+### Step
+
+```python
+Step(
+    step_id=1,
+    model_response="The model's thinking/response",
+    tool_calls=[...],
+    observations=[...],
+    metrics=Metrics(...),  # Optional
+)
+```
+
+### ToolCall
+
+```python
+ToolCall(
+    tool_id="call_1",
+    tool_name="bash",
+    tool_input={"command": "ls -la"},
+)
+```
+
+### Observation
+
+```python
+Observation(
+    observation_id="obs_1",
+    tool_id="call_1",  # Links to ToolCall
+    observation=ObservationResult(
+        content="output text",
+        error=None,  # Or error message
+    ),
+)
+```
+
+### Metrics
+
+```python
+Metrics(
+    input_tokens=150,
+    output_tokens=50,
+)
+
+FinalMetrics(
+    total_steps=5,
+    total_input_tokens=1500,
+    total_output_tokens=500,
+)
+```
+
+## Writing Trajectories
+
+Agents should write trajectories to `/logs/agent/trajectory.json`:
+
+```python
+from plato.agents import BaseAgent
+
+class MyAgent(BaseAgent[MyConfig]):
+    async def run(self, instruction: str) -> None:
+        steps = []
+
+        # ... execute agent logic, collect steps ...
+
+        trajectory = Trajectory(
+            agent=Agent(name=self.name, version=self.get_version()),
+            steps=steps,
+        )
+
+        await self.write_trajectory(trajectory.model_dump())
+```
+
+## Logging Trajectories
+
+Trajectories are automatically captured by `run_agent`:
+
+```python
+from plato.agents import run_agent
+
+# run_agent reads trajectory.json and logs it as an event
+await run_agent(
+    image="my-agent:latest",
+    config={...},
+    secrets={...},
+    instruction="...",
+    workspace="/workspace",
+    logs_dir="/logs",  # Trajectory read from /logs/agent/trajectory.json
+)
+```
+
+The trajectory is logged as a `trajectory` event type and uploaded with artifacts.

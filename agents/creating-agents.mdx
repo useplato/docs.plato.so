@@ -1,0 +1,185 @@
+---
+title: 'Creating Agents'
+description: 'Build custom agents with typed configuration'
+---
+
+# Creating Agents
+
+## Agent Structure
+
+```python
+from plato.agents import BaseAgent, AgentConfig, Secret, register_agent
+from typing import Annotated
+
+class MyAgentConfig(AgentConfig):
+    """Configuration for my agent."""
+    model_name: str = "anthropic/claude-sonnet-4"
+    temperature: float = 0.7
+    api_key: Annotated[str, Secret(description="Anthropic API key")]
+
+@register_agent("my-agent")
+class MyAgent(BaseAgent[MyAgentConfig]):
+    """My custom agent."""
+
+    name = "my-agent"
+    description = "A custom agent for specific tasks"
+
+    async def run(self, instruction: str) -> None:
+        # Access typed configuration
+        model = self.config.model_name
+        api_key = self.config.api_key
+
+        # Your agent logic here
+        self.logger.info(f"Running with model: {model}")
+
+        # Write trajectory when done
+        await self.write_trajectory(trajectory)
+```
+
+## Configuration
+
+### AgentConfig Fields
+
+```python
+class OpenHandsConfig(AgentConfig):
+    # Regular fields with defaults
+    model_name: str = "anthropic/claude-sonnet-4"
+    max_iterations: int = 50
+    temperature: float = 0.0
+
+    # Secret fields - auto-loaded from env vars
+    anthropic_api_key: Annotated[str | None, Secret(description="Anthropic API key")] = None
+    openai_api_key: Annotated[str | None, Secret(description="OpenAI API key")] = None
+```
+
+### Secret Loading
+
+Secrets are automatically loaded from environment variables:
+
+```python
+# Field name: anthropic_api_key
+# Environment variable: ANTHROPIC_API_KEY
+
+api_key: Annotated[str, Secret(description="API key")]
+```
+
+### Built-in Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `logs_dir` | `str` | `/logs` | Output directory for logs |
+| `checkpoint_paths` | `list[str]` | `[]` | Directories to watch |
+| `checkpoint_debounce_ms` | `int` | `500` | Checkpoint debounce |
+
+## The run() Method
+
+```python
+async def run(self, instruction: str) -> None:
+    """
+    Execute the agent with the given instruction.
+
+    Args:
+        instruction: The task instruction/prompt.
+    """
+    # 1. Setup
+    client = self.setup_client()
+
+    # 2. Execute
+    result = await self.execute_task(instruction)
+
+    # 3. Write trajectory
+    await self.write_trajectory(result.trajectory)
+```
+
+## Writing Trajectories
+
+Use the ATIF (Agent Trajectory Interchange Format):
+
+```python
+from plato.agents import Trajectory, Step, Agent, ToolCall, Observation, ObservationResult
+
+trajectory = Trajectory(
+    agent=Agent(
+        name=self.name,
+        version=self.get_version(),
+    ),
+    steps=[
+        Step(
+            step_id=1,
+            model_response="I'll list the files first.",
+            tool_calls=[
+                ToolCall(
+                    tool_id="call_1",
+                    tool_name="bash",
+                    tool_input={"command": "ls -la"},
+                )
+            ],
+            observations=[
+                Observation(
+                    observation_id="obs_1",
+                    tool_id="call_1",
+                    observation=ObservationResult(
+                        content="file1.py\nfile2.py",
+                    ),
+                )
+            ],
+        ),
+    ],
+)
+
+await self.write_trajectory(trajectory.model_dump())
+```
+
+## Docker Packaging
+
+### Dockerfile
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+ENTRYPOINT ["python", "-m", "my_agent"]
+```
+
+### Entry Point
+
+```python
+# __main__.py
+import argparse
+import asyncio
+
+from my_agent import MyAgent, MyAgentConfig
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--instruction", required=True)
+    args = parser.parse_args()
+
+    config = MyAgentConfig.from_file("/config.json")
+
+    agent = MyAgent()
+    agent.config = config
+    asyncio.run(agent.run(args.instruction))
+
+if __name__ == "__main__":
+    main()
+```
+
+### Build Config
+
+```yaml
+# plato-build.yml
+name: my-agent
+version: 1.0.0
+docker:
+  context: .
+  dockerfile: Dockerfile
+  platforms:
+    - linux/amd64
+```

@@ -39,6 +39,14 @@
       ]
     },
     {
+      "group": "SDK v2",
+      "pages": [
+        "sdk-v2/overview",
+        "sdk-v2/sessions",
+        "sdk-v2/environments"
+      ]
+    },
+    {
       "group": "SDK Reference",
       "pages": [
         "sdk/plato-client",
@@ -47,12 +55,26 @@
       ]
     },
     {
-      "group": "Plato Hub",
+      "group": "Agents",
       "pages": [
-        "hub/installation",
-        "hub/quickstart",
-        "hub/simulator-management", 
-        "hub/development-sandbox"
+        "agents/overview",
+        "agents/creating-agents",
+        "agents/running-agents"
+      ]
+    },
+    {
+      "group": "Worlds",
+      "pages": [
+        "worlds/overview",
+        "worlds/creating-worlds"
+      ]
+    },
+    {
+      "group": "Logging",
+      "pages": [
+        "logging/overview",
+        "logging/spans",
+        "logging/trajectories"
       ]
     },
     {

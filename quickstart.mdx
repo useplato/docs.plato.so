@@ -1,6 +1,6 @@
 ---
 title: 'Quickstart'
-description: 'Get started with Plato - from setup to your first automated browser task'
+description: 'Get started with Plato - from setup to your first environment'
 ---
 
 
@@ -13,108 +13,115 @@ description: 'Get started with Plato - from setup to your first automated browse
     </Warning>
   </Step>
 
-  <Step title="Install Plato CLI">
-    Install the Plato CLI for simulator development:
+  <Step title="Install the SDK">
+    Install the Plato SDK v2:
 
     ```bash
-    uv tool install plato-sdk
+    uv add plato-sdk-v2
     ```
 
-    <Tip>
-      The CLI requires Python 3.8+ and provides access to all Plato Hub features
-    </Tip>
+    Or with pip:
+
+    ```bash
+    pip install plato-sdk-v2
+    ```
   </Step>
 
   <Step title="Set up your environment variables">
-    Create a `.env` file in your project root and add your API key:
-
-    ```bash .env
-    PLATO_API_KEY=your_api_key_here
-    PLATO_BASE_URL=https://plato.so/api
-    ```
-
-    The SDK will automatically load these environment variables.
-  </Step>
-
-  <Step title="Clone your first simulator">
-    Let's clone an existing simulator and start developing:
+    Set your API key in your environment:
 
     ```bash
-    # See what simulators are available
-    plato list-simulators
-
-    # Clone a simulator 
-    plato hub clone custom-sim
-    cd custom-sim
-
-    # Check the configuration
-    cat plato-config.yml
+    export PLATO_API_KEY=your_api_key_here
     ```
 
-    This downloads the simulator code and sets up your local development environment.
+    The SDK will automatically use this environment variable.
   </Step>
 
-  <Step title="Start development sandbox">
-    Now let's start a development sandbox to test your changes:
+  <Step title="Create your first session">
+    Create a session with an environment and start interacting:
 
-    ```bash
-    # Start a development sandbox with live VM
-    plato hub sandbox
+    ```python
+    import asyncio
+    from plato.v2 import AsyncPlato, Env
 
-    # This will:
-    # 1. Create a development branch
-    # 2. Start a VM with your code
-    # 3. Set up SSH tunneling
-    # 4. Present interactive menu for development
+    async def main():
+        # Initialize the client
+        plato = AsyncPlato()
+
+        # Create a session with an espocrm environment
+        session = await plato.sessions.create(
+            envs=[Env.simulator("espocrm")]
+        )
+
+        try:
+            # Reset to initial state
+            await session.reset()
+
+            # Get the public URL to access the application
+            urls = await session.get_public_url()
+            print(f"Access your environment at: {urls}")
+
+            # Execute a command
+            result = await session.execute("whoami")
+            print(f"Running as: {result}")
+
+            # Get the current state
+            state = await session.get_state()
+            print(f"State: {state}")
+
+        finally:
+            # Always clean up
+            await session.close()
+            await plato.close()
+
+    asyncio.run(main())
     ```
-
-    Choose **Option 1** to start simulator services, then **Option 2 or 3** to connect your editor (VS Code or Cursor) directly to the VM.
-
-    <Note>
-      The sandbox provides a complete development environment with your code, database, and services running in an isolated VM that you can connect to directly.
-    </Note>
   </Step>
 
-  <Step title="Develop and deploy changes">
-    Once you've made changes in your sandbox, deploy them to the Plato registry:
+  <Step title="Explore the API">
+    Now that you have a working environment, explore the full API:
 
-    ```bash
-    # Make your changes in the connected editor
+    ```python
+    # Multiple environments
+    session = await plato.sessions.create(
+        envs=[
+            Env.simulator("espocrm", alias="crm"),
+            Env.simulator("gitea", alias="git"),
+        ]
+    )
 
-    # Commit and deploy your changes  
-    git add .
-    git commit -m "Add new feature"
-    plato hub git push
+    # Access specific environments
+    crm = session.get_env("crm")
+    await crm.execute("ls -la /app")
+
+    # Create snapshots
+    snapshot = await session.snapshot()
+
+    # Evaluate task completion
+    result = await session.evaluate()
     ```
-
-    Your changes are now deployed and available for use!
   </Step>
 </Steps>
 
 ## What's Next?
 
 <CardGroup cols={2}>
-  <Card title="Simulator Management" icon="gear" href="/hub/simulator-management">
-    Learn all CLI commands for creating and managing simulators
+  <Card title="SDK v2" icon="code" href="/sdk-v2/overview">
+    Learn the full SDK v2 API for sessions and environments
   </Card>
-  <Card title="Development Sandbox" icon="code" href="/hub/development-sandbox">
-    Deep dive into sandbox development with live reloading and debugging
+  <Card title="Agents" icon="robot" href="/agents/overview">
+    Build custom AI agents that run in containers
   </Card>
-  <Card title="SDK Reference" icon="book" href="/sdk/plato-client">
-    Explore the Python/JavaScript SDKs for automation
+  <Card title="Worlds" icon="globe" href="/worlds/overview">
+    Create execution environments for your agents
   </Card>
-  <Card title="Examples" icon="play" href="/examples">
-    Real-world examples and common development patterns
+  <Card title="Logging" icon="chart-line" href="/logging/overview">
+    Track events, spans, and trajectories
   </Card>
 </CardGroup>
 
 ## Need Help?
 
-- **CLI installation issues?** Make sure you have Python 3.8+ and try `uv --version` to verify uv is installed
-- **Authentication problems?** Double-check your API key and ensure it's properly set in your environment
-- **Sandbox won't start?** Verify you're in a directory with `.plato-hub.json` configuration
-- **Git operations failing?** Run `uv run plato hub login` to refresh your credentials
-
-<Tip>
-  The development sandbox provides live SSH access to your VM. Use VS Code or Cursor's remote SSH features for the best development experience.
-</Tip>
+- **Installation issues?** Make sure you have Python 3.10+ and try `uv --version` to verify uv is installed
+- **Authentication problems?** Double-check your API key is set: `echo $PLATO_API_KEY`
+- **Session not starting?** Check your network connection and verify your API key has access

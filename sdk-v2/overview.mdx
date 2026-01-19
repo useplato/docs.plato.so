@@ -1,0 +1,111 @@
+---
+title: 'SDK v2 Overview'
+description: 'Modern async Python SDK for interacting with Plato environments'
+---
+
+# Plato SDK v2
+
+The Plato SDK v2 provides a clean, typed async API for creating and managing sessions and environments.
+
+## Installation
+
+```bash
+uv add plato-sdk-v2
+```
+
+## Quick Start
+
+```python
+from plato.v2 import AsyncPlato, Env
+
+async def main():
+    # Initialize client
+    plato = AsyncPlato()
+
+    # Create a session with one or more environments
+    session = await plato.sessions.create(
+        envs=[Env.simulator("espocrm")]
+    )
+
+    # Reset to initial state
+    await session.reset()
+
+    # Get public URLs for browser access
+    urls = await session.get_public_url()
+    print(f"Access at: {urls}")
+
+    # Execute commands
+    result = await session.execute("ls -la /app")
+    print(result)
+
+    # Get application state
+    state = await session.get_state()
+
+    # Clean up
+    await session.close()
+    await plato.close()
+```
+
+## Core Concepts
+
+### Sessions
+
+A **Session** is a container for one or more environments. Sessions:
+
+- Group related environments together
+- Provide session-level operations (reset, evaluate, snapshot)
+- Handle heartbeats automatically to keep environments alive
+- Can be serialized and restored for long-running workflows
+
+### Environments
+
+An **Environment** is a single VM running a simulator. Each environment:
+
+- Has an alias for identification
+- Can execute shell commands
+- Tracks state changes (database mutations, file changes)
+- Supports snapshots for checkpointing
+
+### Environment Types
+
+Use the `Env` helper to create different environment configurations:
+
+```python
+from plato.v2 import Env, SimConfigCompute
+
+# From a simulator (uses pre-built snapshot)
+Env.simulator("espocrm")
+Env.simulator("espocrm:staging")  # specific tag
+Env.simulator("espocrm", dataset="blank")  # blank database
+
+# From a specific artifact/snapshot
+Env.artifact("artifact-abc123")
+
+# Blank VM with custom resources
+Env.resource("custom", SimConfigCompute(cpus=4, memory=8192, disk=20000))
+```
+
+## Authentication
+
+Set your API key via environment variable:
+
+```bash
+export PLATO_API_KEY=your_api_key
+```
+
+Or pass it directly:
+
+```python
+plato = AsyncPlato(api_key="your_api_key")
+```
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Sessions" icon="layer-group" href="/sdk-v2/sessions">
+    Learn about session management, heartbeats, and serialization
+  </Card>
+  <Card title="Environments" icon="server" href="/sdk-v2/environments">
+    Execute commands, get state, and manage individual environments
+  </Card>
+</CardGroup>

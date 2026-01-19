@@ -1,0 +1,218 @@
+---
+title: 'Sessions'
+description: 'Create and manage sessions containing multiple environments'
+---
+
+# Sessions
+
+A Session groups one or more environments together and provides session-level operations.
+
+## Creating Sessions
+
+### From Simulators
+
+Create sessions from pre-built simulator snapshots:
+
+```python
+from plato.v2 import AsyncPlato, Env
+
+plato = AsyncPlato()
+
+# Single environment
+session = await plato.sessions.create(
+    envs=[Env.simulator("espocrm")]
+)
+
+# Multiple environments
+session = await plato.sessions.create(
+    envs=[
+        Env.simulator("espocrm", alias="crm"),
+        Env.simulator("gitea", alias="git"),
+    ]
+)
+```
+
+### From Tasks
+
+Create sessions from a pre-defined task:
+
+```python
+session = await plato.sessions.create(task="task-public-id-123")
+```
+
+### From Artifacts
+
+Create sessions from specific snapshots:
+
+```python
+session = await plato.sessions.create(
+    envs=[Env.artifact("artifact-abc123", alias="restored")]
+)
+```
+
+## Session Operations
+
+### Reset
+
+Reset all environments to their initial state:
+
+```python
+await session.reset()
+```
+
+### Execute Commands
+
+Run shell commands across all environments:
+
+```python
+# Execute on all environments
+result = await session.execute("whoami")
+
+# Check results per environment
+for job_id, output in result.results.items():
+    print(f"{job_id}: {output.stdout}")
+```
+
+### Get State
+
+Retrieve the current application state (database mutations, file changes):
+
+```python
+state = await session.get_state()
+
+for job_id, env_state in state.results.items():
+    print(f"{job_id} mutations: {env_state.mutations}")
+```
+
+### Get Public URLs
+
+Get browser-accessible URLs for each environment:
+
+```python
+urls = await session.get_public_url()
+# Returns: {"crm": "https://abc123--80.sims.plato.so", ...}
+
+# With custom port
+urls = await session.get_public_url(port=8080)
+```
+
+### Evaluate
+
+Evaluate the session against task criteria:
+
+```python
+result = await session.evaluate()
+print(f"Success: {result.success}")
+print(f"Score: {result.score}")
+```
+
+### Snapshot
+
+Create a checkpoint of all environments:
+
+```python
+snapshot_result = await session.snapshot()
+
+for job_id, info in snapshot_result.results.items():
+    print(f"{job_id} artifact: {info.artifact_id}")
+```
+
+### Disk Snapshot
+
+Create a disk-only snapshot (faster, no memory state):
+
+```python
+result = await session.disk_snapshot(
+    override_service="my-service",
+    override_version="v1.0.0",
+)
+```
+
+## Accessing Environments
+
+### List All Environments
+
+```python
+for env in session.envs:
+    print(f"{env.alias}: {env.job_id}")
+```
+
+### Get Environment by Alias
+
+```python
+crm_env = session.get_env("crm")
+if crm_env:
+    result = await crm_env.execute("ls -la")
+```
+
+## Heartbeats
+
+Sessions automatically send heartbeats to keep environments alive. The heartbeat is started automatically when creating a session.
+
+```python
+# Heartbeats start automatically
+session = await plato.sessions.create(envs=[...])
+
+# Manually control heartbeats if needed
+await session.stop_heartbeat()
+await session.start_heartbeat()
+```
+
+## Serialization
+
+Sessions can be serialized for persistence and later restoration:
+
+```python
+# Serialize session state
+serialized = session.dump()
+
+# Save to file, database, etc.
+import json
+with open("session.json", "w") as f:
+    f.write(serialized.model_dump_json())
+
+# Later: restore the session
+from plato.v2 import AsyncSession, SerializedSession
+
+with open("session.json") as f:
+    data = SerializedSession.model_validate_json(f.read())
+
+restored_session = await AsyncSession.load(data)
+```
+
+## Cleanup
+
+Always close sessions when done to free resources:
+
+```python
+await session.close()
+await plato.close()
+```
+
+## Browser Login
+
+For environments with login flows, use the `login` method with Playwright:
+
+```python
+from playwright.async_api import async_playwright
+
+async with async_playwright() as p:
+    browser = await p.chromium.launch()
+
+    login_result = await session.login(browser)
+
+    # Access logged-in pages by alias
+    crm_page = login_result.pages["crm"]
+    await crm_page.click("button.dashboard")
+
+    await login_result.context.close()
+    await browser.close()
+```
+
+## Session Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `session_id` | `str` | Unique session identifier |
+| `task_public_id` | `str \| None` | Task ID if created from task |
+| `envs` | `list[Environment]` | List of environments |

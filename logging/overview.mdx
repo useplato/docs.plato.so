@@ -1,0 +1,105 @@
+---
+title: 'Logging Overview'
+description: 'Track events, spans, and trajectories from agents and worlds'
+---
+
+# Logging
+
+The Plato logging module provides structured logging for agents and worlds. It tracks:
+
+- **Events**: Individual log entries with metadata
+- **Spans**: Timed operations with automatic nesting
+- **Trajectories**: ATIF-format agent execution traces
+- **Artifacts**: Uploaded log files and data
+
+## Installation
+
+```bash
+uv add plato-sdk-v2
+```
+
+## Quick Example
+
+```python
+from plato.agents import init_logging, span, log_event, upload_artifacts
+
+# Initialize logging (done automatically by worlds)
+init_logging(
+    callback_url="https://chronos.plato.so/callback",
+    session_id="session-123",
+)
+
+# Create spans for timed operations
+async with span("clone_repo") as s:
+    s.log("Cloning repository...")
+
+    # Nested spans automatically track parent-child relationships
+    async with span("checkout"):
+        s.log("Checking out branch...")
+
+# Log individual events
+await log_event(
+    span_type="my_event",
+    content="Something happened",
+    extra={"key": "value"},
+)
+
+# Upload log directory as artifact
+await upload_artifacts("/path/to/logs")
+```
+
+## Core Functions
+
+### init_logging
+
+Initialize the logging singleton:
+
+```python
+init_logging(
+    callback_url="https://chronos.plato.so/callback",
+    session_id="session-123",
+    parent_event_id="step-456",  # Optional root parent
+)
+```
+
+### span
+
+Create timed operation spans:
+
+```python
+async with span("operation_name", span_type="agent") as s:
+    s.log("Progress message")
+    s.set_extra({"result": "success"})
+```
+
+### log_event
+
+Log individual events:
+
+```python
+await log_event(
+    span_type="tool_call",
+    content="Called bash command",
+    source="agent",
+    extra={"command": "ls -la"},
+)
+```
+
+### upload_artifacts
+
+Upload a directory as a zip:
+
+```python
+url = await upload_artifacts("/logs/agent")
+```
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Spans" icon="clock" href="/logging/spans">
+    Learn about timed operation tracking
+  </Card>
+  <Card title="Trajectories" icon="route" href="/logging/trajectories">
+    ATIF format for agent execution traces
+  </Card>
+</CardGroup>

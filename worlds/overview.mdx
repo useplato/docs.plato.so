@@ -1,0 +1,98 @@
+---
+title: 'Worlds Overview'
+description: 'Execution environments for running agents'
+---
+
+# Worlds
+
+Worlds define execution environments for agents. A world sets up the context (clone repos, prepare databases) and orchestrates agent execution.
+
+## Installation
+
+```bash
+uv add plato-sdk-v2
+```
+
+## Quick Example
+
+```python
+from plato.worlds import (
+    BaseWorld,
+    RunConfig,
+    Agent,
+    AgentConfig,
+    Secret,
+    Observation,
+    StepResult,
+    register_world,
+)
+from typing import Annotated
+
+class CodeWorldConfig(RunConfig):
+    repository_url: str
+    prompt: str
+    coder: Annotated[AgentConfig, Agent(description="Coding agent")]
+    git_token: Annotated[str | None, Secret(description="GitHub token")] = None
+
+@register_world("code")
+class CodeWorld(BaseWorld[CodeWorldConfig]):
+    name = "code"
+    description = "Run coding agents on git repositories"
+
+    async def reset(self) -> Observation:
+        # Clone repository, setup environment
+        ...
+        return Observation(data={"ready": True})
+
+    async def step(self) -> StepResult:
+        # Run agent
+        ...
+        return StepResult(observation=Observation(data={"done": True}), done=True)
+```
+
+## Core Concepts
+
+### BaseWorld
+
+The base class for all worlds. Provides:
+- Typed config access via generics
+- Lifecycle management (reset, step, close)
+- Automatic logging integration
+- Plato session connection
+
+### RunConfig
+
+Configuration base class that:
+- Defines world-specific fields
+- Marks agent fields with `Agent` annotation
+- Marks secret fields with `Secret` annotation
+
+### Lifecycle
+
+```
+┌─────────────────┐
+│    run()        │
+│  ┌───────────┐  │
+│  │  reset()  │  │ ← Setup environment
+│  └─────┬─────┘  │
+│        │        │
+│  ┌─────▼─────┐  │
+│  │  step()   │◄─┤ ← Execute agents (loop until done)
+│  └─────┬─────┘  │
+│        │        │
+│  ┌─────▼─────┐  │
+│  │  close()  │  │ ← Cleanup
+│  └───────────┘  │
+└─────────────────┘
+```
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Creating Worlds" icon="hammer" href="/worlds/creating-worlds">
+    Build custom execution environments
+  </Card>
+  <Card title="Running Agents" icon="play" href="/agents/running-agents">
+    Execute agents from within worlds
+  </Card>
+</CardGroup>

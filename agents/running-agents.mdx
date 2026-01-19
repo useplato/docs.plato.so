@@ -1,0 +1,132 @@
+---
+title: 'Running Agents'
+description: 'Execute agents in Docker containers'
+---
+
+# Running Agents
+
+The `run_agent` function executes agents in isolated Docker containers.
+
+## Basic Usage
+
+```python
+from plato.agents import run_agent
+
+await run_agent(
+    image="my-agent:latest",
+    config={"model_name": "claude-sonnet-4"},
+    secrets={"anthropic_api_key": "sk-..."},
+    instruction="Fix the bug in main.py",
+    workspace="/path/to/workspace",
+)
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `image` | `str` | Yes | Docker image URI |
+| `config` | `dict` | Yes | Agent configuration |
+| `secrets` | `dict[str, str]` | Yes | Secrets as env vars |
+| `instruction` | `str` | Yes | Task instruction |
+| `workspace` | `str` | Yes | Mounted workspace path |
+| `logs_dir` | `str \| None` | No | Logs directory |
+| `pull` | `bool` | No | Pull image first (default: True) |
+
+## Volume Mounts
+
+| Container Path | Host Path | Description |
+|----------------|-----------|-------------|
+| `/workspace` | `workspace` param | Agent working directory |
+| `/logs` | `logs_dir` param | Logs and trajectory output |
+| `/config.json` | (temp file) | Agent configuration |
+
+## Secret Injection
+
+Secrets become environment variables:
+
+```python
+secrets = {
+    "anthropic_api_key": "sk-...",
+    "git_token": "ghp_...",
+}
+
+# In container:
+# ANTHROPIC_API_KEY=sk-...
+# GIT_TOKEN=ghp_...
+```
+
+## Example: From a World
+
+```python
+from plato.agents import run_agent
+from plato.worlds import BaseWorld, StepResult
+
+class MyWorld(BaseWorld[MyWorldConfig]):
+    async def step(self) -> StepResult:
+        agent = self.config.coder
+
+        await run_agent(
+            image=agent.image,
+            config=agent.config,
+            secrets=self.config.all_secrets,
+            instruction=self.config.prompt,
+            workspace="/workspace",
+            logs_dir="/workspace/.agent_logs",
+            pull=False,
+        )
+
+        return StepResult(
+            observation=Observation(data={"completed": True}),
+            done=True,
+        )
+```
+
+## Example: Standalone
+
+```python
+import asyncio
+import os
+from plato.agents import run_agent
+
+async def main():
+    await run_agent(
+        image="383806609161.dkr.ecr.us-west-1.amazonaws.com/agents/openhands:1.0.0",
+        config={
+            "model_name": "anthropic/claude-sonnet-4",
+            "max_iterations": 50,
+        },
+        secrets={
+            "anthropic_api_key": os.environ["ANTHROPIC_API_KEY"],
+        },
+        instruction="Create a fibonacci function",
+        workspace="/tmp/workspace",
+        logs_dir="/tmp/logs",
+    )
+
+asyncio.run(main())
+```
+
+## Error Handling
+
+```python
+try:
+    await run_agent(...)
+except RuntimeError as e:
+    print(f"Agent failed: {e}")
+```
+
+## Trajectory Output
+
+Agents write trajectories to `/logs/agent/trajectory.json`:
+
+```json
+{
+  "schema_version": "1.0.0",
+  "agent": {
+    "name": "my-agent",
+    "version": "1.0.0"
+  },
+  "steps": [...]
+}
+```

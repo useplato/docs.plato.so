@@ -1,0 +1,155 @@
+---
+title: 'Spans'
+description: 'Track timed operations with automatic nesting'
+---
+
+# Spans
+
+Spans track timed operations with automatic parent-child relationships. They're the primary way to structure logs.
+
+## Basic Usage
+
+```python
+from plato.agents import span
+
+async with span("my_operation") as s:
+    s.log("Starting work...")
+    # Do work
+    s.log("Work complete")
+```
+
+## Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | `str` | Required | Operation name |
+| `span_type` | `str` | `"span"` | Event type (span, agent, step, etc.) |
+| `source` | `str` | `"agent"` | Source (agent, world, system) |
+| `extra` | `dict` | `None` | Additional metadata |
+
+## Span Methods
+
+### log()
+
+Add log messages to the span:
+
+```python
+async with span("process") as s:
+    s.log("Step 1 complete")
+    s.log("Step 2 complete")
+# Logs are included in the span's extra data
+```
+
+### set_extra()
+
+Add metadata to the span:
+
+```python
+async with span("fetch_data") as s:
+    data = await fetch()
+    s.set_extra({
+        "count": len(data),
+        "source": "api",
+    })
+```
+
+### event_id
+
+Get the span's unique ID:
+
+```python
+async with span("operation") as s:
+    print(f"Span ID: {s.event_id}")
+```
+
+## Automatic Nesting
+
+Spans automatically track parent-child relationships:
+
+```python
+async with span("parent") as parent:
+    # This span's parent is "parent"
+    async with span("child") as child:
+        # This span's parent is "child"
+        async with span("grandchild"):
+            pass
+```
+
+Results in hierarchy:
+```
+parent
+├── child
+│   └── grandchild
+```
+
+## Span Lifecycle
+
+1. **Enter**: Logs `"{name} started"` with `started_at` timestamp
+2. **Exit (success)**: Logs `"{name} completed"` with `ended_at` timestamp
+3. **Exit (error)**: Logs `"{name} failed"` with error details
+
+```python
+async with span("risky_operation") as s:
+    try:
+        await risky_task()
+    except Exception as e:
+        # Span automatically logs failure with error info
+        raise
+```
+
+## Event Structure
+
+Each span generates events with this structure:
+
+```json
+{
+  "session_id": "session-123",
+  "span_type": "span",
+  "content": "my_operation completed",
+  "source": "agent",
+  "event_id": "uuid-...",
+  "parent_id": "parent-uuid-...",
+  "started_at": "2024-01-15T10:00:00Z",
+  "ended_at": "2024-01-15T10:00:05Z",
+  "extra": {
+    "logs": ["Step 1", "Step 2"],
+    "custom_key": "value"
+  }
+}
+```
+
+## No-Op Mode
+
+When logging isn't initialized, spans become no-ops:
+
+```python
+from plato.agents import span, reset_logging
+
+reset_logging()  # Clear logging
+
+async with span("operation") as s:
+    s.log("This goes to debug logger only")
+    # No HTTP calls are made
+```
+
+## Example: Agent Execution
+
+```python
+from plato.agents import span
+
+async def run_agent(instruction: str):
+    async with span("agent_execution", span_type="agent") as agent_span:
+        agent_span.log(f"Starting with: {instruction}")
+
+        async with span("setup", span_type="step"):
+            await setup_environment()
+
+        async with span("execute", span_type="step") as exec_span:
+            result = await execute_task(instruction)
+            exec_span.set_extra({"result": result})
+
+        async with span("cleanup", span_type="step"):
+            await cleanup()
+
+        agent_span.set_extra({"success": True})
+```

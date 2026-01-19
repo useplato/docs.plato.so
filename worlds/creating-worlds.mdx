@@ -1,0 +1,297 @@
+---
+title: 'Creating Worlds'
+description: 'Build execution environments for running agents'
+---
+
+# Creating Worlds
+
+This guide walks through creating a world using the `code-world` package as a real example.
+
+## Code World Example
+
+The `code-world` package runs coding agents on git repositories. Here's the complete implementation:
+
+```python
+"""Code World - run coding agents on git repositories."""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+from pathlib import Path
+from typing import Annotated, ClassVar
+
+from plato.agents import run_agent
+from plato.worlds import (
+    Agent,
+    AgentConfig,
+    BaseWorld,
+    Observation,
+    RunConfig,
+    Secret,
+    StepResult,
+    register_world,
+)
+
+
+class CodeWorldConfig(RunConfig):
+    """Configuration for CodeWorld.
+
+    All fields are typed - no .get() methods needed.
+    """
+
+    # World-specific fields
+    repository_url: str
+    prompt: str
+    checkout: str = "main"
+    workspace_dir: str = "/workspace"  # Can be overridden for local testing
+
+    # Agents (typed)
+    coder: Annotated[AgentConfig, Agent(description="Coding agent to run tasks on the repository")]
+
+    # Secrets (typed, optional)
+    git_token: Annotated[str | None, Secret(description="GitHub/GitLab token for HTTPS auth")] = None
+    git_ssh_key: Annotated[str | None, Secret(description="SSH private key for SSH auth")] = None
+
+
+@register_world("code")
+class CodeWorld(BaseWorld[CodeWorldConfig]):
+    """World for running coding agents on git repositories.
+
+    Simple workflow:
+    1. reset(): Clone the repository
+    2. step(): Run the agent docker container (single step, then done)
+    """
+
+    name: ClassVar[str] = "code"
+    description: ClassVar[str] = "Run coding agents on git repositories"
+
+    async def reset(self) -> Observation:
+        """Clone the repository to workspace."""
+        repo_url = self.config.repository_url
+        checkout = self.config.checkout
+        workspace = Path(self.config.workspace_dir)
+
+        self.logger.info(f"Cloning repository: {repo_url}")
+
+        # Ensure workspace exists and is empty
+        if workspace.exists():
+            shutil.rmtree(workspace)
+        workspace.mkdir(parents=True)
+
+        # Setup git credentials
+        env = os.environ.copy()
+        git_token = self.config.git_token
+        git_ssh_key = self.config.git_ssh_key
+
+        if git_ssh_key:
+            ssh_key_path = workspace.parent / ".ssh_key"
+            ssh_key_path.write_text(git_ssh_key)
+            ssh_key_path.chmod(0o600)
+            env["GIT_SSH_COMMAND"] = f"ssh -i {ssh_key_path} -o StrictHostKeyChecking=no"
+        elif git_token and repo_url.startswith("https://"):
+            # Insert token into URL for HTTPS auth
+            if "gitlab.com" in repo_url:
+                repo_url = repo_url.replace("https://", f"https://oauth2:{git_token}@")
+            else:
+                # Works for GitHub, Gitea, and most git hosts
+                repo_url = repo_url.replace("https://", f"https://{git_token}@")
+
+        # Clone
+        clone_cmd = ["git", "clone", "--depth", "1", "-b", checkout, repo_url, str(workspace)]
+        result = subprocess.run(clone_cmd, env=env, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to clone: {result.stderr}")
+
+        self.logger.info(f"Cloned to {workspace}")
+        return Observation(data={"workspace": str(workspace), "checkout": checkout})
+
+    async def step(self) -> StepResult:
+        """Run the agent container - single step then done."""
+        agent = self.config.coder
+        prompt = self.config.prompt
+        workspace = Path(self.config.workspace_dir)
+
+        self.logger.info(f"Running agent: {agent.image}")
+        self.logger.info(f"Agent config: {agent.config}")
+
+        # Create logs directory
+        logs_path = workspace / ".agent_logs"
+        logs_path.mkdir(parents=True, exist_ok=True)
+
+        # Run agent (trajectory and logs uploaded automatically via logging singleton)
+        await run_agent(
+            image=agent.image,
+            config=agent.config,
+            secrets=self.config.all_secrets,
+            instruction=prompt,
+            workspace=str(workspace),
+            logs_dir=str(logs_path),
+            pull=False,
+        )
+
+        return StepResult(
+            observation=Observation(data={"completed": True}),
+            done=True,
+        )
+```
+
+## Breaking It Down
+
+### Configuration
+
+The `CodeWorldConfig` class defines all inputs:
+
+```python
+class CodeWorldConfig(RunConfig):
+    # Required world fields
+    repository_url: str
+    prompt: str
+
+    # Optional with defaults
+    checkout: str = "main"
+    workspace_dir: str = "/workspace"
+
+    # Agent configuration (marked with Agent annotation)
+    coder: Annotated[AgentConfig, Agent(description="Coding agent")]
+
+    # Secrets (marked with Secret annotation)
+    git_token: Annotated[str | None, Secret(description="GitHub token")] = None
+    git_ssh_key: Annotated[str | None, Secret(description="SSH key")] = None
+```
+
+**Key points:**
+- Use `Annotated[AgentConfig, Agent(...)]` for agent fields
+- Use `Annotated[str | None, Secret(...)]` for secret fields
+- All fields are fully typed - no `.get()` needed
+
+### Registration
+
+Register the world with a name:
+
+```python
+@register_world("code")
+class CodeWorld(BaseWorld[CodeWorldConfig]):
+    name: ClassVar[str] = "code"
+    description: ClassVar[str] = "Run coding agents on git repositories"
+```
+
+### reset() Method
+
+Setup the environment. Called once at the start:
+
+```python
+async def reset(self) -> Observation:
+    # Access typed config
+    repo_url = self.config.repository_url
+    workspace = Path(self.config.workspace_dir)
+
+    # Setup environment (clone repo, etc.)
+    ...
+
+    # Return observation with setup info
+    return Observation(data={"workspace": str(workspace)})
+```
+
+### step() Method
+
+Execute the agent. Called repeatedly until `done=True`:
+
+```python
+async def step(self) -> StepResult:
+    agent = self.config.coder
+
+    # Run agent in Docker
+    await run_agent(
+        image=agent.image,
+        config=agent.config,
+        secrets=self.config.all_secrets,
+        instruction=self.config.prompt,
+        workspace=str(workspace),
+        logs_dir=str(logs_path),
+        pull=False,
+    )
+
+    # Return done=True to end
+    return StepResult(
+        observation=Observation(data={"completed": True}),
+        done=True,
+    )
+```
+
+## Running Code World
+
+```python
+from code_world import CodeWorld, CodeWorldConfig
+
+config = CodeWorldConfig(
+    repository_url="https://github.com/user/repo",
+    prompt="Fix the bug in main.py",
+    checkout="main",
+    coder={
+        "image": "openhands:latest",
+        "config": {"model_name": "claude-sonnet-4"},
+    },
+    git_token="ghp_...",
+    all_secrets={
+        "anthropic_api_key": "sk-...",
+        "git_token": "ghp_...",
+    },
+)
+
+world = CodeWorld()
+await world.run(config)
+```
+
+## World Lifecycle
+
+```
+┌─────────────────────────────────────┐
+│           world.run(config)          │
+│                                      │
+│  1. Initialize logging               │
+│  2. Connect to Plato session         │
+│                                      │
+│  ┌─────────────────────────────────┐ │
+│  │        reset()                  │ │
+│  │  - Clone repository             │ │
+│  │  - Setup workspace              │ │
+│  │  - Return Observation           │ │
+│  └─────────────────────────────────┘ │
+│                 │                    │
+│                 ▼                    │
+│  ┌─────────────────────────────────┐ │
+│  │        step() loop              │ │
+│  │  - Run agent                    │ │
+│  │  - Return StepResult            │ │
+│  │  - Repeat until done=True       │ │
+│  └─────────────────────────────────┘ │
+│                 │                    │
+│                 ▼                    │
+│  ┌─────────────────────────────────┐ │
+│  │        close()                  │ │
+│  │  - Cleanup resources            │ │
+│  │  - Stop heartbeats              │ │
+│  └─────────────────────────────────┘ │
+└─────────────────────────────────────┘
+```
+
+## Built-in Features
+
+Worlds automatically get:
+
+- **Logging**: Spans for reset/step operations
+- **Session Management**: Plato session heartbeats
+- **Config Validation**: Pydantic validation on all fields
+- **Schema Generation**: JSON schema for UI integration
+
+## Creating Your Own World
+
+1. **Define Config**: Extend `RunConfig` with your fields
+2. **Mark Agents**: Use `Annotated[AgentConfig, Agent(...)]`
+3. **Mark Secrets**: Use `Annotated[str | None, Secret(...)]`
+4. **Implement reset()**: Setup your environment
+5. **Implement step()**: Run agents, return `done=True` when finished
+6. **Register**: Use `@register_world("name")`

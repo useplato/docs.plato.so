@@ -1,0 +1,219 @@
+---
+title: 'Environments'
+description: 'Interact with individual VM environments'
+---
+
+# Environments
+
+An Environment represents a single VM within a session. Each environment runs a simulator and can execute commands, track state, and be snapshotted.
+
+## Accessing Environments
+
+Environments are accessed through a session:
+
+```python
+from plato.v2 import AsyncPlato, Env
+
+plato = AsyncPlato()
+session = await plato.sessions.create(
+    envs=[
+        Env.simulator("espocrm", alias="crm"),
+        Env.simulator("gitea", alias="git"),
+    ]
+)
+
+# List all environments
+for env in session.envs:
+    print(f"{env.alias}: {env.job_id}")
+
+# Get specific environment by alias
+crm = session.get_env("crm")
+```
+
+## Environment Operations
+
+### Execute Commands
+
+Run shell commands on the environment:
+
+```python
+# Basic command
+result = await env.execute("ls -la /app")
+print(result.stdout)
+print(result.stderr)
+print(result.exit_code)
+
+# With timeout
+result = await env.execute("long-running-script.sh", timeout=120)
+```
+
+### Reset
+
+Reset the environment to its initial state:
+
+```python
+await env.reset()
+```
+
+### Get State
+
+Retrieve the current application state:
+
+```python
+state = await env.get_state()
+
+# Access state data
+print(state.mutations)  # Database/file changes
+print(state.state)      # Current state snapshot
+```
+
+### Set Date
+
+Change the system date (useful for testing time-dependent features):
+
+```python
+from datetime import datetime
+
+await env.set_date(datetime(2024, 12, 25, 10, 0, 0))
+```
+
+### Snapshot
+
+Create a checkpoint of the environment:
+
+```python
+result = await env.snapshot()
+print(f"Artifact ID: {result.artifact_id}")
+```
+
+### Get Connection Info
+
+Get network routing information for the VM:
+
+```python
+info = await env.get_connection_info()
+print(f"Gateway IP: {info.vm_gateway_ip}")
+print(f"Private IP: {info.vm_private_ip}")
+print(f"Ready: {info.ready}")
+```
+
+### Close
+
+Close the environment (stops the VM):
+
+```python
+await env.close()
+```
+
+## Environment Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `job_id` | `str` | Unique job/VM identifier |
+| `alias` | `str` | Human-readable alias |
+| `artifact_id` | `str \| None` | Source artifact ID |
+| `session_id` | `str` | Parent session ID |
+
+## Creating Environments
+
+Use the `Env` helper to specify environment configurations:
+
+### From Simulator
+
+```python
+from plato.v2 import Env
+
+# Default (latest tag, base dataset)
+Env.simulator("espocrm")
+
+# With specific tag
+Env.simulator("espocrm:staging")
+Env.simulator("espocrm", tag="staging")
+
+# With specific dataset
+Env.simulator("espocrm", dataset="blank")
+
+# With custom alias
+Env.simulator("espocrm", alias="my-crm")
+```
+
+### From Artifact
+
+```python
+# From a specific snapshot
+Env.artifact("artifact-abc123")
+Env.artifact("artifact-abc123", alias="restored")
+```
+
+### From Resource
+
+Create a blank VM with custom resources:
+
+```python
+from plato.v2 import Env, SimConfigCompute
+
+Env.resource(
+    "custom-service",
+    SimConfigCompute(
+        cpus=4,
+        memory=8192,  # MB
+        disk=20000,   # MB
+    ),
+    alias="beefy-vm"
+)
+```
+
+## Example: Multi-Environment Workflow
+
+```python
+from plato.v2 import AsyncPlato, Env
+
+async def multi_env_example():
+    plato = AsyncPlato()
+
+    # Create session with multiple environments
+    session = await plato.sessions.create(
+        envs=[
+            Env.simulator("gitea", alias="git"),
+            Env.simulator("espocrm", alias="crm"),
+        ]
+    )
+
+    try:
+        # Get environments
+        git = session.get_env("git")
+        crm = session.get_env("crm")
+
+        # Reset all to initial state
+        await session.reset()
+
+        # Execute commands on specific environments
+        git_result = await git.execute("git status")
+        crm_result = await crm.execute("php artisan migrate:status")
+
+        # Get state from all environments
+        state = await session.get_state()
+        for job_id, env_state in state.results.items():
+            print(f"{job_id}: {len(env_state.mutations)} mutations")
+
+        # Snapshot everything
+        snapshot = await session.snapshot()
+
+    finally:
+        await session.close()
+        await plato.close()
+```
+
+## Error Handling
+
+```python
+try:
+    result = await env.execute("invalid-command")
+except Exception as e:
+    print(f"Command failed: {e}")
+
+# Check command exit code
+result = await env.execute("test -f /nonexistent")
+if result.exit_code != 0:
+    print(f"File not found: {result.stderr}")
+```

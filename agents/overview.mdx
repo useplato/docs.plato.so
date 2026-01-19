@@ -1,0 +1,97 @@
+---
+title: 'Agents Overview'
+description: 'Build AI agents that execute tasks in containers'
+---
+
+# Agents
+
+Agents are AI systems packaged as Docker containers that can execute tasks. The Plato agent framework provides:
+
+- **Typed Configuration**: Pydantic-based config with automatic secret loading
+- **Docker Packaging**: Run agents in isolated containers
+- **Trajectory Capture**: ATIF-format logging of agent actions
+- **Registry**: Register and discover agents by name
+
+## Installation
+
+```bash
+uv add plato-sdk-v2
+```
+
+## Quick Example
+
+```python
+from plato.agents import BaseAgent, AgentConfig, Secret, register_agent
+from typing import Annotated
+
+class MyAgentConfig(AgentConfig):
+    model_name: str = "anthropic/claude-sonnet-4"
+    api_key: Annotated[str, Secret(description="API key")]
+
+@register_agent("my-agent")
+class MyAgent(BaseAgent[MyAgentConfig]):
+    name = "my-agent"
+    description = "My custom agent"
+
+    async def run(self, instruction: str) -> None:
+        # Access typed configuration
+        model = self.config.model_name
+        api_key = self.config.api_key
+
+        # Execute task logic
+        ...
+
+        # Write trajectory
+        await self.write_trajectory(trajectory)
+```
+
+## Core Concepts
+
+### BaseAgent
+
+The base class for all agents. Provides:
+- Typed config access via generics
+- Logger instance
+- Trajectory writing
+- Version detection
+
+### AgentConfig
+
+Configuration base class that:
+- Extends `pydantic-settings` for env var loading
+- Marks secret fields with `Secret` annotation
+- Provides JSON schema generation
+
+### Secret Annotation
+
+Mark sensitive fields that should be loaded from environment:
+
+```python
+api_key: Annotated[str, Secret(description="API key")]
+# Loaded from ANTHROPIC_API_KEY env var
+```
+
+### Registration
+
+Register agents for discovery:
+
+```python
+@register_agent("my-agent")
+class MyAgent(BaseAgent[MyAgentConfig]):
+    ...
+
+# Retrieve agents
+from plato.agents import get_agent, get_registered_agents
+agent_cls = get_agent("my-agent")
+```
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Creating Agents" icon="hammer" href="/agents/creating-agents">
+    Build custom agents with typed configuration
+  </Card>
+  <Card title="Running Agents" icon="play" href="/agents/running-agents">
+    Execute agents in Docker containers
+  </Card>
+</CardGroup>
