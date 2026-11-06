@@ -17,16 +17,16 @@ description: 'Get an API key and install the Core SDK'
   </Step>
 
   <Step title="Install the SDK">
-    Requires Python 3.10+ and `plato-sdk-v2 >= 2.61.4`.
+    Requires Python 3.10+ and `plato-sdk-v2 >= 2.61.4`. The SDK installs from Plato's package index with your Plato API key, so export `PLATO_API_KEY` first (next step).
 
     ```bash
-    uv add 'plato-sdk-v2>=2.61.4'
+    uv add 'plato-sdk-v2>=2.61.4' --index "https://__token__:$PLATO_API_KEY@plato.so/api/v2/pypi/pypi-store/simple/"
     ```
 
     Or with pip:
 
     ```bash
-    pip install 'plato-sdk-v2>=2.61.4'
+    pip install 'plato-sdk-v2>=2.61.4' --index-url "https://__token__:$PLATO_API_KEY@plato.so/api/v2/pypi/pypi-store/simple/"
     ```
   </Step>
 
